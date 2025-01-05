@@ -1,11 +1,10 @@
 package consorsbank.api;
 
+import com.consorsbank.module.tapi.grpc.AccessServiceGrpc;
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc;
-import com.consorsbank.module.tapi.grpc.security.SecurityCode;
-import com.consorsbank.module.tapi.grpc.security.SecurityCodeType;
+import com.consorsbank.module.tapi.grpc.access.LoginReply;
+import com.consorsbank.module.tapi.grpc.access.LoginRequest;
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
-import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
-import com.consorsbank.module.tapi.grpc.stock.StockExchange;
 import com.consorsbank.module.tapi.observers.MarketDataDataObserver;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -18,120 +17,93 @@ import java.io.InputStream;
 public class SecureMarketDataService {
 
     private final ManagedChannel channel;
+    private final AccessServiceGrpc.AccessServiceBlockingStub accessServiceStub;
     private final SecurityServiceGrpc.SecurityServiceStub securityServiceStub;
 
+    /**
+     * Konstruktor zur Initialisierung des gRPC-Kanals mit TLS.
+     *
+     * @param host             Hostname der API (z. B. "localhost")
+     * @param port             Port der API (z. B. 40443)
+     * @param certResourcePath Pfad zum Zertifikat im Ressourcen-Ordner (z. B. "roots.pem")
+     * @throws SSLException Wenn das SSL-Zertifikat fehlerhaft ist
+     */
     public SecureMarketDataService(String host, int port, String certResourcePath) throws SSLException {
-        // Lade das Zertifikat aus dem Ressourcenordner
+        // Lade das Zertifikat aus den Ressourcen
         InputStream certInputStream = getClass().getClassLoader().getResourceAsStream(certResourcePath);
         if (certInputStream == null) {
-            throw new IllegalArgumentException("Certificate file not found: " + certResourcePath);
+            throw new IllegalArgumentException("Zertifikat nicht gefunden: " + certResourcePath);
         }
 
-        // Erstelle den SslContext mit dem geladenen Zertifikat
+        // Erstelle den SslContext mit dem Zertifikat
         SslContext sslContext = SslContextBuilder.forClient()
-                .trustManager(certInputStream) // Zertifikat einbinden
+                .trustManager(certInputStream)
                 .build();
 
-        // Erstelle den gRPC-Kanal mit TLS
-        // Kanal mit Netty-TCNATIVE und HTTP/2 Unterstützung
-        System.setProperty("io.grpc.netty.shaded.io.netty.handler.ssl.debug", "all");
+        // Erstelle den gRPC-Kanal
         this.channel = NettyChannelBuilder.forAddress(host, port)
-                .sslContext(sslContext) // TLS aktivieren
-                .negotiationType(io.grpc.netty.shaded.io.grpc.netty.NegotiationType.TLS) // Aktiviert HTTP/2
+                .sslContext(sslContext)
                 .build();
 
-        // Initialisiere den SecurityServiceStub
+        // Initialisiere die Stubs
+        this.accessServiceStub = AccessServiceGrpc.newBlockingStub(channel);
         this.securityServiceStub = SecurityServiceGrpc.newStub(channel);
     }
 
-    public ManagedChannel getChannel() {
-        return channel;
+    /**
+     * Führt den Login aus und gibt einen Access-Token zurück.
+     *
+     * @param secret Das Secret, das in der Trading API-Konfiguration definiert wurde.
+     * @return Der Access-Token als String, wenn erfolgreich; andernfalls `null`.
+     */
+    public String login(String secret) {
+        // Erstelle das LoginRequest-Objekt
+        LoginRequest loginRequest = LoginRequest.newBuilder()
+                .setSecret(secret)
+                .build();
+
+        try {
+            // Sende die Login-Anfrage und erhalte die Antwort
+            LoginReply loginReply = accessServiceStub.login(loginRequest);
+
+            // Überprüfen auf Fehler
+            if (loginReply.hasError()) {
+                System.err.println("Login fehlgeschlagen: " + loginReply.getError().getMessage());
+                return null;
+            }
+
+            // Access-Token zurückgeben
+            return loginReply.getAccessToken();
+        } catch (Exception e) {
+            System.err.println("Login-Fehler: " + e.getMessage());
+            return null;
+        }
     }
 
+    /**
+     * Startet einen Marktdaten-Stream.
+     *
+     * @param request  Die Anfrage mit allen benötigten Informationen.
+     * @param observer Der Observer zur Verarbeitung der Daten.
+     */
+    public void streamMarketData(SecurityMarketDataRequest request, MarketDataDataObserver observer) {
+        // Starte den Stream über den SecurityServiceStub
+        securityServiceStub.streamMarketData(request, observer);
+    }
+
+    /**
+     * Schließt den gRPC-Kanal.
+     */
     public void close() {
         channel.shutdown();
     }
 
-    public SecurityServiceGrpc.SecurityServiceStub getSecurityServiceStub() {
-        return this.securityServiceStub;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     /**
-     * Starts a market data stream.
+     * Gibt den SecurityServiceStub zurück, falls er direkt benötigt wird.
      *
-     * @param accessToken The API access token.
-     * @param securityCodeStr The security code (e.g., WKN or ISIN).
-     * @param securityCodeType The type of the security code.
-     * @param stockExchangeId The stock exchange ID.
-     * @param currency The desired currency (e.g., "USD").
-     * @return A MarketDataDataObserver instance for handling the stream.
+     * @return SecurityServiceGrpc.SecurityServiceStub
      */
-    public MarketDataDataObserver streamMarketData(
-            String accessToken,
-            String securityCodeStr,
-            SecurityCodeType securityCodeType,
-            String stockExchangeId,
-            String currency) {
-
-        // Erstellen eines SecurityCode-Objekts
-        SecurityCode securityCode = SecurityCode.newBuilder()
-                .setCode(securityCodeStr) // Setze den Security-Code (z. B. WKN oder ISIN)
-                .setCodeType(securityCodeType) // Setze den Code-Typ (z. B. WKN, ISIN)
-                .build();
-
-        // Erstellen eines StockExchange-Objekts
-        StockExchange stockExchange = StockExchange.newBuilder()
-                .setId(stockExchangeId) // Setze die Stock Exchange ID
-                .build();
-
-        // Erstellen des SecurityWithStockExchange-Objekts
-        SecurityWithStockExchange securityWithStockExchange = SecurityWithStockExchange.newBuilder()
-                .setSecurityCode(securityCode) // Hier wird das SecurityCode-Objekt übergeben
-                .setStockExchange(stockExchange) // Hier wird das StockExchange-Objekt übergeben
-                .build();
-
-        // Build the SecurityMarketDataRequest
-        SecurityMarketDataRequest request = SecurityMarketDataRequest.newBuilder()
-                .setAccessToken(accessToken)
-                .setSecurityWithStockexchange(securityWithStockExchange)
-                .setCurrency(currency == null ? "" : currency)
-                .build();
-
-        // Create and return the MarketDataDataObserver
-        return new MarketDataDataObserver(request, securityServiceStub);
-    }
-
-    public SecurityMarketDataRequest createMarketDataRequest(
-            String accessToken,
-            String securityCodeStr,
-            SecurityCodeType securityCodeType,
-            String stockExchangeId,
-            String currency
-    ) {
-        // Erstellen eines SecurityCode-Objekts
-        SecurityCode securityCode = SecurityCode.newBuilder()
-                .setCode(securityCodeStr) // Setze den Security-Code (z. B. WKN oder ISIN)
-                .setCodeType(securityCodeType) // Setze den Code-Typ (z. B. WKN, ISIN)
-                .build();
-
-        // Erstellen eines StockExchange-Objekts
-        StockExchange stockExchange = StockExchange.newBuilder()
-                .setId(stockExchangeId) // Setze die Stock Exchange ID
-                .build();
-
-        // Erstellen des SecurityWithStockExchange-Objekts
-        SecurityWithStockExchange securityWithStockExchange = SecurityWithStockExchange.newBuilder()
-                .setSecurityCode(securityCode) // Hier wird das SecurityCode-Objekt übergeben
-                .setStockExchange(stockExchange) // Hier wird das StockExchange-Objekt übergeben
-                .build();
-
-        // Build the SecurityMarketDataRequest
-        return SecurityMarketDataRequest.newBuilder()
-                .setAccessToken(accessToken)
-                .setSecurityWithStockexchange(securityWithStockExchange)
-                .setCurrency(currency == null ? "" : currency)
-                .build();
+    public SecurityServiceGrpc.SecurityServiceStub getSecurityServiceStub() {
+        return securityServiceStub;
     }
 }
