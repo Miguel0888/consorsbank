@@ -2,4 +2,9 @@ grpc:
   server:
     enabled: false
 
-secret: 123456
+secure-market-data:
+  host: localhost
+  port: 40443
+  secret: 123456
+  cert-content: "" # Leer lassen, wenn die Datei genutzt werden soll
+  cert-file: roots.pem # Pfad relativ zum Ressourcenordner
