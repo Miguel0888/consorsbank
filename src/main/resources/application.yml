@@ -1,0 +1,10 @@
+grpc:
+  server:
+    host: localhost
+    port: 40443
+    cert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDHDCCAgSgAwIBAgIJAJl/VY/LhDO7MA0GCSqGSIb3DQEBCwUAMDUxCzAJBgNVBAYTAkRFMRIw
+      ...
+      -----END CERTIFICATE-----
+    secret: 123456
