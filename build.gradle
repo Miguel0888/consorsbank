@@ -11,10 +11,6 @@ repositories {
 }
 
 dependencies {
-    // JavaFX-Module
-//    implementation 'org.openjfx:javafx-controls:17'
-//    implementation 'org.openjfx:javafx-fxml:17'
-
     // OkHttp für HTTP-Anfragen
     implementation 'com.squareup.okhttp3:okhttp:4.11.0'
 
@@ -43,14 +39,6 @@ dependencies {
     implementation files('lib/grpc-stub-1.18.0.jar')
     implementation files('lib/protobuf-java-3.5.1.jar')
     implementation files('lib/protobuf-java-util-3.5.1.jar')
-
-
-//    implementation 'io.grpc:grpc-netty-shaded:1.56.0'
-//    implementation 'io.grpc:grpc-core:1.56.0'
-//    implementation 'io.grpc:grpc-stub:1.56.0'
-//    implementation 'io.grpc:grpc-protobuf:1.56.0'
-//    implementation 'io.grpc:grpc-netty-shaded:1.56.0'
-//    implementation 'com.google.protobuf:protobuf-java:3.22.0'
 }
 
 javafx {
