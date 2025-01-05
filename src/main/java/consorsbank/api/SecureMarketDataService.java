@@ -6,7 +6,10 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 
 import javax.net.ssl.SSLException;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 public class SecureMarketDataService {
     private final ManagedChannel channel;
@@ -16,18 +19,16 @@ public class SecureMarketDataService {
      *
      * @param host             Hostname des gRPC-Servers
      * @param port             Port des gRPC-Servers
-     * @param trustCertPath    Pfad zum Root-Zertifikat
+     * @param certContent       Root-Zertifikat
      * @throws SSLException    Falls SSL-Initialisierung fehlschlägt
      */
-    public SecureMarketDataService(String host, int port, String trustCertPath) throws SSLException {
-        File certFile = new File(trustCertPath);
-        if (!certFile.exists() || !certFile.isFile()) {
-            throw new IllegalArgumentException("Das Zertifikat unter " + trustCertPath + " wurde nicht gefunden.");
-        }
+    public SecureMarketDataService(String host, int port, String certContent) throws SSLException {
+//        File certFile = new File(trustCertPath);
+        InputStream certInputStream = new ByteArrayInputStream(certContent.getBytes());
 
         this.channel = NettyChannelBuilder.forAddress(host, port)
                 .negotiationType(NegotiationType.TLS) // HTTP/2 mit TLS
-                .sslContext(GrpcSslContexts.forClient().trustManager(certFile).build()) // Zertifikat laden
+                .sslContext(GrpcSslContexts.forClient().trustManager(certInputStream).build()) // Zertifikat laden
                 .build();
     }
 
@@ -35,9 +36,7 @@ public class SecureMarketDataService {
         return channel;
     }
 
-    public void close() {
-        if (channel != null) {
-            channel.shutdown();
-        }
+    public void close() throws InterruptedException {
+        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 }
