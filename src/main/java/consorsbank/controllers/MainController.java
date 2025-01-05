@@ -1,5 +1,9 @@
 package consorsbank.controllers;
 
+import com.consorsbank.module.tapi.grpc.AccessServiceGrpc;
+import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc;
+import com.consorsbank.module.tapi.grpc.access.LoginReply;
+import com.consorsbank.module.tapi.grpc.access.LoginRequest;
 import com.consorsbank.module.tapi.grpc.security.SecurityCode;
 import com.consorsbank.module.tapi.grpc.security.SecurityCodeType;
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
@@ -8,10 +12,14 @@ import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
 import com.consorsbank.module.tapi.grpc.stock.StockExchange;
 import com.consorsbank.module.tapi.observers.MarketDataDataObserver;
 import consorsbank.api.SecureMarketDataService;
+import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MainController {
 
@@ -27,35 +35,42 @@ public class MainController {
     }
 
     private void loadMarketData() {
+        Logger.getLogger("io.grpc").setLevel(Level.FINE);
+
         txtOutput.setText("Marktdaten werden geladen...\n");
 
         try {
-            // Initialisiere den SecureMarketDataService mit Zertifikat
+            // Initialisiere den SecureMarketDataService
             SecureMarketDataService marketService = new SecureMarketDataService(
                     "localhost", // Host
                     40443,       // Port
-                    "roots.pem"  // Pfad zum Zertifikat in resources
+                    "src/main/resources/roots.pem" // Pfad zum Zertifikat
             );
 
             // Beispiel-Secret für die Authentifizierung
             String secret = "123456";
 
-            // Login durchführen und Access-Token abrufen
-            String accessToken = marketService.login(secret);
+            // Login durchführen
+            ManagedChannel channel = marketService.getChannel();
+            AccessServiceGrpc.AccessServiceBlockingStub accessServiceStub = AccessServiceGrpc.newBlockingStub(channel);
 
-            if (accessToken == null || accessToken.isEmpty()) {
-                txtOutput.appendText("Login fehlgeschlagen. Bitte überprüfe das Secret und die API-Konfiguration.\n");
+            LoginRequest loginRequest = LoginRequest.newBuilder().setSecret(secret).build();
+            LoginReply loginReply = accessServiceStub.login(loginRequest);
+
+            if (loginReply.getError() != null && !loginReply.getError().equals(com.consorsbank.module.tapi.grpc.common.Error.getDefaultInstance())) {
+                txtOutput.appendText("Login fehlgeschlagen: " + loginReply.getError().getMessage() + "\n");
                 return;
             }
+
+            String accessToken = loginReply.getAccessToken();
             txtOutput.appendText("Login erfolgreich! Access-Token erhalten.\n");
 
             // Eingaben für den SecurityMarketDataRequest
-            String securityCodeStr = "710000"; // Beispiel-WKN für Mercedes
-            SecurityCodeType securityCodeType = SecurityCodeType.WKN; // Typ: WKN
-            String stockExchangeId = "OTC"; // Beispiel: OTC
-            String currency = "EUR"; // Beispiel: EUR
+            String securityCodeStr = "710000"; // Beispiel-WKN
+            SecurityCodeType securityCodeType = SecurityCodeType.WKN;
+            String stockExchangeId = "OTC";
+            String currency = "EUR";
 
-            // Erstellen des SecurityMarketDataRequest
             SecurityCode securityCode = SecurityCode.newBuilder()
                     .setCode(securityCodeStr)
                     .setCodeType(securityCodeType)
@@ -76,35 +91,16 @@ public class MainController {
                     .setCurrency(currency)
                     .build();
 
-            // Stream starten und Observer direkt implementieren
-            marketService.streamMarketData(request, new MarketDataDataObserver(request, marketService.getSecurityServiceStub()) {
-                @Override
-                public void onNext(SecurityMarketDataReply response) {
-                    if (response.getError() == null || "0".equals(response.getError().getCode())) {
-                        String message = String.format("Erhaltene Marktdaten: Preis: %.2f, Datum: %s\n",
-                                response.getLastPrice(), response.getLastDateTime());
-                        txtOutput.appendText(message);
-                    } else {
-                        txtOutput.appendText("Fehler in der Antwort: " + response.getError().getMessage() + "\n");
-                    }
-                }
+            SecurityServiceGrpc.SecurityServiceStub securityServiceStub = SecurityServiceGrpc.newStub(channel);
 
-//                @Override
-//                public void onError(Throwable t) {
-//                    txtOutput.appendText("Fehler: " + t.getMessage() + "\n");
-//                }
+            MarketDataDataObserver observer = new MarketDataDataObserver(request, securityServiceStub);
+            observer.onCompleted();
 
-                @Override
-                public void onCompleted() {
-                    txtOutput.appendText("Marktdaten-Stream abgeschlossen.\n");
-                }
-            });
-
-            // Bereinigung bei Shutdown
-            Runtime.getRuntime().addShutdownHook(new Thread(marketService::close));
+            txtOutput.appendText("Marktdaten-Stream abgeschlossen.\n");
 
         } catch (Exception e) {
             txtOutput.appendText("Fehler beim Laden der Marktdaten: " + e.getMessage() + "\n");
         }
     }
+
 }
