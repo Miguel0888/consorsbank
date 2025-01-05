@@ -1,8 +1,9 @@
-package consorsbank.observers;
+package consorsbank.trash;
 
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc.SecurityServiceStub;
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
+import consorsbank.observers.MarketDataDataObserver;
 
 import java.util.function.Consumer;
 
