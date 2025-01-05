@@ -10,6 +10,7 @@ import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
 import com.consorsbank.module.tapi.grpc.security.SecurityCode;
 import com.consorsbank.module.tapi.grpc.security.SecurityCodeType;
 import com.consorsbank.module.tapi.grpc.stock.StockExchange;
+import consorsbank.config.SecureMarketDataConfig;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -29,18 +30,10 @@ public class SecureMarketDataService {
     private final SecurityServiceGrpc.SecurityServiceStub securityServiceStub;
     private String accessToken;
 
-    /**
-     * Konstruktor für den SecureMarketDataService
-     *
-     * @param host        Hostname des gRPC-Servers
-     * @param port        Port des gRPC-Servers
-     * @param certContent Zertifikat als String
-     * @param secret      Zugangsschlüssel für die API
-     */
-    public SecureMarketDataService(String host, int port, String certContent, String secret) throws SSLException {
-        InputStream certInputStream = new ByteArrayInputStream(certContent.getBytes());
+    public SecureMarketDataService(SecureMarketDataConfig config) throws SSLException {
+        InputStream certInputStream = new ByteArrayInputStream(config.getCertContent().getBytes());
 
-        this.channel = NettyChannelBuilder.forAddress(host, port)
+        this.channel = NettyChannelBuilder.forAddress(config.getHost(), config.getPort())
                 .negotiationType(io.grpc.netty.shaded.io.grpc.netty.NegotiationType.TLS)
                 .sslContext(GrpcSslContexts.forClient().trustManager(certInputStream).build())
                 .build();
@@ -48,7 +41,7 @@ public class SecureMarketDataService {
         this.accessServiceStub = AccessServiceGrpc.newBlockingStub(channel);
         this.securityServiceStub = SecurityServiceGrpc.newStub(channel);
 
-        performLogin(secret);
+        performLogin(config.getSecret());
     }
 
     private void performLogin(String secret) {
