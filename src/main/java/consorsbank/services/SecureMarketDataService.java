@@ -4,12 +4,12 @@ import com.consorsbank.module.tapi.grpc.AccessServiceGrpc;
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc;
 import com.consorsbank.module.tapi.grpc.access.LoginReply;
 import com.consorsbank.module.tapi.grpc.access.LoginRequest;
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
-import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
 import com.consorsbank.module.tapi.grpc.security.SecurityCode;
 import com.consorsbank.module.tapi.grpc.security.SecurityCodeType;
+import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
+import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
 import com.consorsbank.module.tapi.grpc.stock.StockExchange;
+import consorsbank.config.SecureMarketDataConfig;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -27,31 +27,20 @@ public class SecureMarketDataService {
     private final ManagedChannel channel;
     private final AccessServiceGrpc.AccessServiceBlockingStub accessServiceStub;
     private final SecurityServiceGrpc.SecurityServiceStub securityServiceStub;
-    private String accessToken;
 
-    /**
-     * Konstruktor für den SecureMarketDataService
-     *
-     * @param host        Hostname des gRPC-Servers
-     * @param port        Port des gRPC-Servers
-     * @param certContent Zertifikat als String
-     * @param secret      Zugangsschlüssel für die API
-     */
-    public SecureMarketDataService(String host, int port, String certContent, String secret) throws SSLException {
-        InputStream certInputStream = new ByteArrayInputStream(certContent.getBytes());
+    public SecureMarketDataService(SecureMarketDataConfig config) throws SSLException {
+        InputStream certInputStream = new ByteArrayInputStream(config.getCertContent().getBytes());
 
-        this.channel = NettyChannelBuilder.forAddress(host, port)
+        this.channel = NettyChannelBuilder.forAddress(config.getHost(), config.getPort())
                 .negotiationType(io.grpc.netty.shaded.io.grpc.netty.NegotiationType.TLS)
                 .sslContext(GrpcSslContexts.forClient().trustManager(certInputStream).build())
                 .build();
 
         this.accessServiceStub = AccessServiceGrpc.newBlockingStub(channel);
         this.securityServiceStub = SecurityServiceGrpc.newStub(channel);
-
-        performLogin(secret);
     }
 
-    private void performLogin(String secret) {
+    public String login(String secret) {
         LoginRequest loginRequest = LoginRequest.newBuilder().setSecret(secret).build();
         LoginReply loginReply = accessServiceStub.login(loginRequest);
 
@@ -59,10 +48,12 @@ public class SecureMarketDataService {
             throw new IllegalStateException("Login fehlgeschlagen: " + loginReply.getError().getMessage());
         }
 
-        this.accessToken = loginReply.getAccessToken();
+        return loginReply.getAccessToken();
     }
 
-    public void streamMarketData(String securityCode, String stockExchangeId, String currency, StreamObserver<SecurityMarketDataReply> observer) {
+    public void streamMarketData(String accessToken, String securityCode, String stockExchangeId, String currency,
+                                 StreamObserver<String> outputObserver) {
+
         SecurityCode securityCodeObj = SecurityCode.newBuilder()
                 .setCode(securityCode)
                 .setCodeType(SecurityCodeType.WKN)
@@ -78,12 +69,27 @@ public class SecureMarketDataService {
                 .build();
 
         SecurityMarketDataRequest request = SecurityMarketDataRequest.newBuilder()
-                .setAccessToken(this.accessToken)
+                .setAccessToken(accessToken)
                 .setSecurityWithStockexchange(securityWithStockExchange)
                 .setCurrency(currency)
                 .build();
 
-        securityServiceStub.streamMarketData(request, observer);
+        securityServiceStub.streamMarketData(request, new StreamObserver<>() {
+            @Override
+            public void onNext(com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply reply) {
+                outputObserver.onNext(reply.toString());
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                outputObserver.onError(t);
+            }
+
+            @Override
+            public void onCompleted() {
+                outputObserver.onCompleted();
+            }
+        });
     }
 
     public void shutdown() throws InterruptedException {

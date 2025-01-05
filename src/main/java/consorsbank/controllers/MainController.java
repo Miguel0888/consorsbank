@@ -1,53 +1,50 @@
 package consorsbank.controllers;
 
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
 import consorsbank.services.SecureMarketDataService;
 import io.grpc.stub.StreamObserver;
-import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
 @Controller
 public class MainController {
 
-    @FXML
-    private Button btnLoadMarketData;
+    private final SecureMarketDataService marketDataService;
 
-    @FXML
-    private TextArea txtOutput;
-
-    @Autowired
-    private SecureMarketDataService marketDataService;
-
-    @FXML
-    public void initialize() {
-        btnLoadMarketData.setOnAction(event -> loadMarketData());
+    public MainController(SecureMarketDataService marketDataService) {
+        this.marketDataService = marketDataService;
     }
 
-    private void loadMarketData() {
-        txtOutput.setText("Marktdaten werden geladen...\n");
+    public void executeActions() {
+        try {
+            // Login und Token abrufen
+            String secret = "123456"; // Beispiel-Secret
+            String accessToken = marketDataService.login(secret);
+            System.out.println("Login erfolgreich! Access-Token: " + accessToken);
 
-        String securityCode = "710000"; // Beispielcode
-        String stockExchangeId = "OTC";
-        String currency = "EUR";
+            // Marktdaten abrufen
+            String securityCode = "710000"; // Beispiel-WKN
+            String stockExchangeId = "OTC";
+            String currency = "EUR";
 
-        marketDataService.streamMarketData(securityCode, stockExchangeId, currency, new StreamObserver<>() {
-            @Override
-            public void onNext(SecurityMarketDataReply reply) {
-                javafx.application.Platform.runLater(() -> txtOutput.appendText(reply.toString() + "\n"));
-            }
+            System.out.println("Starte Marktdaten-Streaming...");
+            marketDataService.streamMarketData(accessToken, securityCode, stockExchangeId, currency, new StreamObserver<>() {
+                @Override
+                public void onNext(String data) {
+                    System.out.println("Empfangene Marktdaten: " + data);
+                }
 
-            @Override
-            public void onError(Throwable t) {
-                javafx.application.Platform.runLater(() -> txtOutput.appendText("Fehler: " + t.getMessage() + "\n"));
-            }
+                @Override
+                public void onError(Throwable t) {
+                    System.err.println("Fehler beim Abrufen der Marktdaten: " + t.getMessage());
+                }
 
-            @Override
-            public void onCompleted() {
-                javafx.application.Platform.runLater(() -> txtOutput.appendText("Marktdaten-Stream abgeschlossen.\n"));
-            }
-        });
+                @Override
+                public void onCompleted() {
+                    System.out.println("Marktdaten-Streaming abgeschlossen.");
+                }
+            });
+
+        } catch (Exception e) {
+            System.err.println("Fehler im Controller: " + e.getMessage());
+        }
     }
 }
