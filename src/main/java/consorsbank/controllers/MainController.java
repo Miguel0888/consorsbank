@@ -5,6 +5,7 @@ import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
 import com.consorsbank.module.tapi.observers.MarketDataDataObserver;
 import consorsbank.api.ChatGPTService;
 import consorsbank.api.MarketDataService;
+import consorsbank.api.SecureMarketDataService;
 import consorsbank.observers.CustomMarketDataObserver;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -27,11 +28,20 @@ public class MainController {
         txtOutput.setText("Marktdaten werden geladen...");
         try {
             // Initialisiere den MarketDataService
-            MarketDataService marketService = new MarketDataService("localhost", 40443);
+//            MarketDataService marketService = new MarketDataService("localhost", 40443);
+            // Initialisiere SecureMarketDataService mit Zertifikat aus resources
+            SecureMarketDataService marketService = new SecureMarketDataService(
+                    "localhost", // Host
+                    40443,       // Port
+                    "roots.pem"  // Pfad zum Zertifikat in resources
+            );
 
             // Eingaben für den Stream
-            String accessToken = "DEIN_ACCESS_TOKEN";
-            String securityCodeStr = "WKN123456";
+//            String accessToken = "DEIN_ACCESS_TOKEN";
+            String accessToken = "123456";
+            String securityCodeStr = "710000"; //Bsp. für Mercedes
+//            String securityCodeStr = "870747"; //Bsp. für MS
+
             SecurityCodeType securityCodeType = SecurityCodeType.WKN; // Beispiel: WKN
             String stockExchangeId = "OTC"; // Beispiel: OTC
             String currency = "EUR"; // Beispiel: EUR
@@ -47,12 +57,17 @@ public class MainController {
                     marketService.getSecurityServiceStub()
             );
 
-            // Füge die Callback-Logik hinzu
+            // Callback-Logik:
             customObserver.setOnMarketDataUpdate(data -> {
-                String message = "Erhaltene Marktdaten: Preis: " + data.getLastPrice() +
-                        " Datum: " + data.getLastDateTime() + "\n";
-                txtOutput.appendText(message);
+                if (data == null) {
+                    txtOutput.appendText("Keine Daten für die angegebene Aktie verfügbar.\n");
+                } else {
+                    String message = "Erhaltene Marktdaten: Preis: " + data.getLastPrice() +
+                            ", Datum: " + data.getLastDateTime() + "\n";
+                    txtOutput.appendText(message);
+                }
             });
+
 
             customObserver.setOnError(error -> txtOutput.appendText("Fehler: " + error.getMessage() + "\n"));
             customObserver.setOnComplete(() -> txtOutput.appendText("Marktdaten-Stream abgeschlossen.\n"));

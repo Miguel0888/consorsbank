@@ -31,11 +31,21 @@ public class CustomMarketDataObserver extends MarketDataDataObserver {
 
     @Override
     public void onNext(SecurityMarketDataReply response) {
-        super.onNext(response); // Behalte die ursprüngliche Logik bei
+        System.out.println("Response received: " + response); // Debug-Ausgabe
+        super.onNext(response);
         if (onMarketDataUpdate != null) {
             onMarketDataUpdate.accept(response);
         }
     }
+
+//    @Override
+//    public void onError(Throwable t) {
+//        System.err.println("Error occurred: " + t.getMessage()); // Debug-Ausgabe
+//        super.onError(t);
+//        if (onErrorCallback != null) {
+//            onErrorCallback.accept(t);
+//        }
+//    }
 
     /**
      * Ruft die Fehlerbehandlung auf, ohne die Basismethode zu überschreiben.
@@ -49,7 +59,8 @@ public class CustomMarketDataObserver extends MarketDataDataObserver {
 
     @Override
     public void onCompleted() {
-        super.onCompleted(); // Behalte die ursprüngliche Logik bei
+        System.out.println("Stream completed"); // Debug-Ausgabe
+        super.onCompleted();
         if (onCompleteCallback != null) {
             onCompleteCallback.run();
         }

@@ -28,11 +28,11 @@ dependencies {
     implementation files('lib/checker-compat-qual-2.5.2.jar')
     implementation files('lib/error_prone_annotations-2.2.0.jar')
     implementation files('lib/grpc-context-1.18.0.jar')
-    implementation files('lib/grpc-core-1.18.0.jar')
-    implementation files('lib/grpc-netty-shaded-1.18.0.jar')
+//    implementation files('lib/grpc-core-1.18.0.jar')
+//    implementation files('lib/grpc-netty-shaded-1.18.0.jar')
     implementation files('lib/grpc-protobuf-1.18.0.jar')
     implementation files('lib/grpc-protobuf-lite-1.18.0.jar') // WICHTIG: Diese fehlte vorher
-    implementation files('lib/grpc-stub-1.18.0.jar')
+//    implementation files('lib/grpc-stub-1.18.0.jar')
     implementation files('lib/gson-2.7.jar')
     implementation files('lib/guava-25.1-android.jar')
     implementation files('lib/j2objc-annotations-1.1.jar')
@@ -40,8 +40,16 @@ dependencies {
     implementation files('lib/opencensus-api-0.18.0.jar')
     implementation files('lib/opencensus-contrib-grpc-metrics-0.18.0.jar')
     implementation files('lib/proto-google-common-protos-1.12.0.jar')
-    implementation files('lib/protobuf-java-3.5.1.jar')
-    implementation files('lib/protobuf-java-util-3.5.1.jar')
+//    implementation files('lib/protobuf-java-3.5.1.jar')
+//    implementation files('lib/protobuf-java-util-3.5.1.jar')
+
+
+    implementation 'io.grpc:grpc-netty-shaded:1.56.0'
+    implementation 'io.grpc:grpc-core:1.56.0'
+    implementation 'io.grpc:grpc-stub:1.56.0'
+    implementation 'io.grpc:grpc-protobuf:1.56.0'
+    implementation 'io.grpc:grpc-netty-shaded:1.56.0'
+    implementation 'com.google.protobuf:protobuf-java:3.22.0'
 }
 
 javafx {

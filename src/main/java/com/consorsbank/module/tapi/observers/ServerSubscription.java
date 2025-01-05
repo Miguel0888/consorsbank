@@ -30,6 +30,8 @@ public abstract class ServerSubscription<R, T> implements ClientResponseObserver
   
   @Override
   public final void onError(Throwable e) {
+    System.err.println("Error occurred: " + e.getMessage()); // ToDo: Remove Debug-Output!
+
     if (e instanceof StatusRuntimeException) {
       StatusRuntimeException statusRuntimeException = (StatusRuntimeException)e;
       Status status = statusRuntimeException.getStatus();
