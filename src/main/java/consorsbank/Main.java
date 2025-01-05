@@ -1,42 +1,33 @@
-//package consorsbank;
-//
-//import consorsbank.util.SpringFXMLLoader;
-//import javafx.application.Application;
-//import javafx.scene.Parent;
-//import javafx.scene.Scene;
-//import javafx.stage.Stage;
-//import org.springframework.boot.builder.SpringApplicationBuilder;
-//import org.springframework.context.ApplicationContext;
-//
-//public class Main extends Application {
-//
-//    private ApplicationContext springContext;
-//
-//    @Override
-//    public void init() throws Exception {
-//        // Starte Spring Context
-//        springContext = new SpringApplicationBuilder(ConsorsBankApplication.class).run();
-//    }
-//
-//    @Override
-//    public void start(Stage primaryStage) throws Exception {
-//        // Lade FXML über SpringFXMLLoader
-//        SpringFXMLLoader fxmlLoader = springContext.getBean(SpringFXMLLoader.class);
-//        Parent root = fxmlLoader.load("/views/main.fxml").load();
-//
-//        primaryStage.setTitle("ConsorsBank Dashboard");
-//        primaryStage.setScene(new Scene(root));
-//        primaryStage.setMaximized(true);
-//        primaryStage.show();
-//    }
-//
-//    @Override
-//    public void stop() throws Exception {
-//        // Schließe Spring Context beim Beenden der Anwendung
-////        springContext.close();
-//    }
-//
-//    public static void main(String[] args) {
-//        launch(args);
-//    }
-//}
+package consorsbank;
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
+
+public class Main extends Application {
+
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        // Lade die main.fxml-Datei
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("views/main.fxml"));
+        Parent root = loader.load();
+
+        // Setze den Titel und die Scene
+        primaryStage.setTitle("ConsorsBank Dashboard");
+        Scene scene = new Scene(root);
+
+        // Setze das Fenster auf maximale Bildschirmgröße
+        primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
+
+        // Zeige das Fenster
+        primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
