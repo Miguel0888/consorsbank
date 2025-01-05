@@ -13,47 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi.observers;
-
-import java.util.List;
+package consorsbank.observers;
 
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc.SecurityServiceStub;
 import com.consorsbank.module.tapi.grpc.common.Error;
-import com.consorsbank.module.tapi.grpc.security.SecurityOrderBookReply;
-import com.consorsbank.module.tapi.grpc.security.SecurityOrderBookReply.OrderBookEntry;
-import com.consorsbank.module.tapi.grpc.security.SecurityOrderBookRequest;
+import com.consorsbank.module.tapi.grpc.security.CurrencyRateReply;
+import com.consorsbank.module.tapi.grpc.security.CurrencyRateRequest;
 
-// tag::OrderBookDataObserver[]
-public class OrderBookDataObserver extends ServerSubscription<SecurityOrderBookRequest, SecurityOrderBookReply> {
+// tag::CurrencyRateDataObserver[]
+public class CurrencyRateDataObserver extends ServerSubscription<CurrencyRateRequest, CurrencyRateReply> {
   private final SecurityServiceStub securityServiceStub;
-
-  public OrderBookDataObserver(SecurityOrderBookRequest request,
-      SecurityServiceStub securityServiceStub) {
-    this.securityServiceStub = securityServiceStub;
-    
-    securityServiceStub.streamOrderBook(request, this); // <1>
-  }
   
+  public CurrencyRateDataObserver(CurrencyRateRequest request,
+      SecurityServiceStub securityServiceStub) {
+
+    this.securityServiceStub = securityServiceStub;
+
+
+    securityServiceStub.streamCurrencyRate(request, this); // <1>
+  }
+
   @Override
   public void onCompleted() {
     System.out.println("Call completed!"); // <2>
   }
-  
+
   @Override
-  public void onNext(SecurityOrderBookReply response) {
+  public void onNext(CurrencyRateReply response) {
     Error error = response.getError();
     if (error==Error.getDefaultInstance()) {
-      System.out.printf("Async client onNext: %s%n", response); // <3>
-      List<OrderBookEntry> orderBookEntriesList = response.getOrderBookEntriesList();
-      for (OrderBookEntry orderBookEntry : orderBookEntriesList) {
-        double askPrice = orderBookEntry.getAskPrice();
-        double askVolume = orderBookEntry.getAskVolume();
-      }
+      System.out.printf("Async client onNext: %s%n", response);
+      double currencyRate = response.getCurrencyRate(); // <3>
       // ...
-      
+
     } else {
       System.out.printf("Error: %s%n", error);
     }
   }
 }
-// end::OrderBookDataObserver[]
+// end::CurrencyRateDataObserver[]

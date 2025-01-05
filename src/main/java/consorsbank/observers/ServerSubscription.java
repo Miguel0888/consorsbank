@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi.observers;
+package consorsbank.observers;
 
 import java.io.Closeable;
 

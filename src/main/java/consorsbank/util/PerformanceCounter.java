@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi;
+package consorsbank.util;
 
 public class PerformanceCounter {
   private double start;

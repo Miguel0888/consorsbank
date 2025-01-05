@@ -6,7 +6,7 @@ import com.consorsbank.module.tapi.grpc.security.SecurityCode;
 import com.consorsbank.module.tapi.grpc.security.SecurityCodeType;
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc;
 import com.consorsbank.module.tapi.grpc.stock.StockExchange;
-import com.consorsbank.module.tapi.observers.MarketDataDataObserver;
+import consorsbank.observers.MarketDataDataObserver;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 

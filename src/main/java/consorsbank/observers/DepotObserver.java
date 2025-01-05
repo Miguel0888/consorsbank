@@ -13,43 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi.observers;
-
+package consorsbank.observers;
 import java.util.List;
 
-// tag::OrdersObserver[]
-import com.consorsbank.module.tapi.grpc.OrderServiceGrpc.OrderServiceStub;
+import com.consorsbank.module.tapi.grpc.DepotServiceGrpc.DepotServiceStub;
 import com.consorsbank.module.tapi.grpc.account.TradingAccount;
 import com.consorsbank.module.tapi.grpc.account.TradingAccountRequest;
 import com.consorsbank.module.tapi.grpc.common.Error;
-import com.consorsbank.module.tapi.grpc.order.Order;
-import com.consorsbank.module.tapi.grpc.order.Orders;
+import com.consorsbank.module.tapi.grpc.depot.DepotEntries;
+import com.consorsbank.module.tapi.grpc.depot.DepotEntry;
 
-public class OrdersObserver extends ServerSubscription<TradingAccount, Orders>{
-  private final OrderServiceStub orderServiceStub;
+//tag::DepotObserver[]
+public class DepotObserver extends ServerSubscription<TradingAccountRequest, DepotEntries>{
+  private final DepotServiceStub serviceStub;
   
-  public OrdersObserver(TradingAccountRequest request, OrderServiceStub orderServiceStub) {
-    this.orderServiceStub = orderServiceStub;
-    this.orderServiceStub.streamOrders(request, this); // <1>
+  public DepotObserver(TradingAccountRequest request, DepotServiceStub depotServiceStub) {
+    this.serviceStub = depotServiceStub;
+    this.serviceStub.streamDepot(request, this); // <1>
   }
   
+
   @Override
   public void onCompleted() { // <2>
     System.out.println("Call completed!");
   }
 
   @Override
-  public void onNext(Orders orders) { // <3>
-    Error error = orders.getError(); // <4>
+  public void onNext(DepotEntries depotEntries) { // <3>
+    Error error = depotEntries.getError(); // <4>
     if (error==Error.getDefaultInstance()) {
-      System.out.printf("Async orders: %s%n", orders);
-      TradingAccount account = orders.getAccount();
-      List<Order> ordersList = orders.getOrdersList();
+      System.out.printf("Async depot: %s%n", depotEntries);
+      TradingAccount account = depotEntries.getAccount();
+      List<DepotEntry> entriesList = depotEntries.getEntriesList();
       // ...
-
+      
     } else {
       System.out.printf("Error: %s%n", error);
     }
   }
 }
-// end::OrdersObserver[]
+// end::DepotObserver[]

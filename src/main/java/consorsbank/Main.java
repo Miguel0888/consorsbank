@@ -11,8 +11,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Lade die master.fxml-Datei
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("views/master.fxml"));
+        // Lade die main.fxml-Datei
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("views/main.fxml"));
         Parent root = loader.load();
 
         // Setze den Titel und die Scene

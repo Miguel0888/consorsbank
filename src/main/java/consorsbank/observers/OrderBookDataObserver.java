@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi.observers;
+package consorsbank.observers;
+
+import java.util.List;
 
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc.SecurityServiceStub;
 import com.consorsbank.module.tapi.grpc.common.Error;
-import com.consorsbank.module.tapi.grpc.common.Timestamp;
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
+import com.consorsbank.module.tapi.grpc.security.SecurityOrderBookReply;
+import com.consorsbank.module.tapi.grpc.security.SecurityOrderBookReply.OrderBookEntry;
+import com.consorsbank.module.tapi.grpc.security.SecurityOrderBookRequest;
 
-// tag::MarketDataDataObserver[]
-public class MarketDataDataObserver extends ServerSubscription<SecurityMarketDataRequest, SecurityMarketDataReply> {
+// tag::OrderBookDataObserver[]
+public class OrderBookDataObserver extends ServerSubscription<SecurityOrderBookRequest, SecurityOrderBookReply> {
   private final SecurityServiceStub securityServiceStub;
 
-  public MarketDataDataObserver(SecurityMarketDataRequest request,
+  public OrderBookDataObserver(SecurityOrderBookRequest request,
       SecurityServiceStub securityServiceStub) {
-    
     this.securityServiceStub = securityServiceStub;
     
-
-    securityServiceStub.streamMarketData(request, this); // <1>
+    securityServiceStub.streamOrderBook(request, this); // <1>
   }
   
   @Override
@@ -40,12 +40,15 @@ public class MarketDataDataObserver extends ServerSubscription<SecurityMarketDat
   }
   
   @Override
-  public void onNext(SecurityMarketDataReply response) {
+  public void onNext(SecurityOrderBookReply response) {
     Error error = response.getError();
-    if (error==Error.getDefaultInstance()) { // <3>
-      System.out.printf("Async client onNext: %s%n", response);
-      double lastPrice = response.getLastPrice();
-      Timestamp lastDateTime = response.getLastDateTime();
+    if (error==Error.getDefaultInstance()) {
+      System.out.printf("Async client onNext: %s%n", response); // <3>
+      List<OrderBookEntry> orderBookEntriesList = response.getOrderBookEntriesList();
+      for (OrderBookEntry orderBookEntry : orderBookEntriesList) {
+        double askPrice = orderBookEntry.getAskPrice();
+        double askVolume = orderBookEntry.getAskVolume();
+      }
       // ...
       
     } else {
@@ -53,4 +56,4 @@ public class MarketDataDataObserver extends ServerSubscription<SecurityMarketDat
     }
   }
 }
-// end::MarketDataDataObserver[]
+// end::OrderBookDataObserver[]

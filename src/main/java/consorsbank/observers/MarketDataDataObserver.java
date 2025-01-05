@@ -13,42 +13,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi.observers;
+package consorsbank.observers;
 
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc.SecurityServiceStub;
 import com.consorsbank.module.tapi.grpc.common.Error;
-import com.consorsbank.module.tapi.grpc.security.CurrencyRateReply;
-import com.consorsbank.module.tapi.grpc.security.CurrencyRateRequest;
+import com.consorsbank.module.tapi.grpc.common.Timestamp;
+import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
+import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
 
-// tag::CurrencyRateDataObserver[]
-public class CurrencyRateDataObserver extends ServerSubscription<CurrencyRateRequest, CurrencyRateReply> {
+// tag::MarketDataDataObserver[]
+public class MarketDataDataObserver extends ServerSubscription<SecurityMarketDataRequest, SecurityMarketDataReply> {
   private final SecurityServiceStub securityServiceStub;
-  
-  public CurrencyRateDataObserver(CurrencyRateRequest request,
+
+  public MarketDataDataObserver(SecurityMarketDataRequest request,
       SecurityServiceStub securityServiceStub) {
-
+    
     this.securityServiceStub = securityServiceStub;
+    
 
-
-    securityServiceStub.streamCurrencyRate(request, this); // <1>
+    securityServiceStub.streamMarketData(request, this); // <1>
   }
-
+  
   @Override
   public void onCompleted() {
     System.out.println("Call completed!"); // <2>
   }
-
+  
   @Override
-  public void onNext(CurrencyRateReply response) {
+  public void onNext(SecurityMarketDataReply response) {
     Error error = response.getError();
-    if (error==Error.getDefaultInstance()) {
+    if (error==Error.getDefaultInstance()) { // <3>
       System.out.printf("Async client onNext: %s%n", response);
-      double currencyRate = response.getCurrencyRate(); // <3>
+      double lastPrice = response.getLastPrice();
+      Timestamp lastDateTime = response.getLastDateTime();
       // ...
-
+      
     } else {
       System.out.printf("Error: %s%n", error);
     }
   }
 }
-// end::CurrencyRateDataObserver[]
+// end::MarketDataDataObserver[]

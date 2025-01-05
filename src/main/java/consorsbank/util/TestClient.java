@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.consorsbank.module.tapi;
+package consorsbank.util;
 
 import java.io.Closeable;
 import java.io.File;
@@ -72,13 +72,13 @@ import com.consorsbank.module.tapi.grpc.stock.StockExchangeRequest;
 import com.consorsbank.module.tapi.grpc.trading.CashQuotation;
 import com.consorsbank.module.tapi.grpc.trading.OrderModel;
 import com.consorsbank.module.tapi.grpc.trading.OrderType;
-import com.consorsbank.module.tapi.observers.CurrencyRateDataObserver;
-import com.consorsbank.module.tapi.observers.DepotObserver;
-import com.consorsbank.module.tapi.observers.MarketDataDataObserver;
-import com.consorsbank.module.tapi.observers.OrderBookDataObserver;
-import com.consorsbank.module.tapi.observers.OrdersObserver;
-import com.consorsbank.module.tapi.observers.TradingAccountInformationObserver;
-import com.consorsbank.module.tapi.observers.TradingAccountTransactionsObserver;
+import consorsbank.observers.CurrencyRateDataObserver;
+import consorsbank.observers.DepotObserver;
+import consorsbank.observers.MarketDataDataObserver;
+import consorsbank.observers.OrderBookDataObserver;
+import consorsbank.observers.OrdersObserver;
+import consorsbank.observers.TradingAccountInformationObserver;
+import consorsbank.observers.TradingAccountTransactionsObserver;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
