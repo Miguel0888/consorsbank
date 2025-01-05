@@ -9,7 +9,9 @@ import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
 import com.consorsbank.module.tapi.grpc.stock.StockExchange;
 import com.consorsbank.module.tapi.observers.MarketDataDataObserver;
 import consorsbank.api.SecureMarketDataService;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 
@@ -85,5 +87,19 @@ public class MainController {
         } catch (Exception e) {
             txtOutput.appendText("Fehler beim Laden der Marktdaten: " + e.getMessage() + "\n");
         }
+    }
+
+    @FXML
+    private void showAboutDialog(ActionEvent actionEvent) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Über");
+        alert.setHeaderText("ConsorsBank Dashboard");
+        alert.setContentText("Diese Anwendung ermöglicht den Zugriff auf Marktdaten über die ConsorsBank Trading API.");
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void exitApplication(ActionEvent actionEvent) {
+        System.exit(0);
     }
 }

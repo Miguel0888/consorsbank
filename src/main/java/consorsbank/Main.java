@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -15,8 +16,14 @@ public class Main extends Application {
         Parent root = loader.load();
 
         // Setze den Titel und die Scene
-        primaryStage.setTitle("ConsorsBank");
-        primaryStage.setScene(new Scene(root));
+        primaryStage.setTitle("ConsorsBank Dashboard");
+        Scene scene = new Scene(root);
+
+        // Setze das Fenster auf maximale Bildschirmgröße
+        primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
+
+        // Zeige das Fenster
         primaryStage.show();
     }
 
