@@ -149,7 +149,7 @@ public class TestClient implements Closeable {
   private TestClient(String host, int port) {
     this(ManagedChannelBuilder.forAddress(host, port)
         // For the example disable TLS to avoid needing certificates.
-        .usePlaintext(true)
+        .usePlaintext()
         .build());
   }
 
