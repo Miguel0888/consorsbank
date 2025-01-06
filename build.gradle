@@ -26,8 +26,8 @@ dependencies {
     implementation 'io.grpc:grpc-stub:1.57.0'
 
     // Protobuf Compiler (für Generierung von Java-Klassen aus .proto)
-    compileOnly 'com.google.protobuf:protobuf-java:3.24.0'
-    annotationProcessor 'com.google.protobuf:protobuf-java:3.24.0'
+//    compileOnly 'com.google.protobuf:protobuf-java:3.24.0'
+//    annotationProcessor 'com.google.protobuf:protobuf-java:3.24.0'
 
     // Für generierte Annotationen (javax.annotation)
     implementation 'javax.annotation:javax.annotation-api:1.3.2'
@@ -47,14 +47,18 @@ javafx {
 }
 
 protobuf {
+    // Important to generate the gRPC classes
+    // Definiert die Version des Protobuf-Compilers (protoc), der verwendet wird, um die .proto-Dateien zu verarbeiten.
     protoc {
         artifact = 'com.google.protobuf:protoc:3.24.0' // Protobuf Compiler
     }
+    // Optional: Definiert das gRPC-Plugin, das vom Protobuf-Compiler verwendet wird, um die gRPC-spezifischen Klassen (Stubs) zu generieren.
     plugins {
         grpc {
             artifact = 'io.grpc:protoc-gen-grpc-java:1.57.0'
         }
     }
+    // Optional: Instructs Gradle to use the grpc plugin in addition to the Protobuf compiler for generating gRPC-specific classes.
     generateProtoTasks {
         all().each { task ->
             task.plugins {
@@ -62,6 +66,16 @@ protobuf {
             }
         }
     }
+}
+
+tasks.build {
+    // Verhindert ein Fehlschlagen des Builds, wenn die generierten Klassen nicht vorhanden sind
+    dependsOn generateProto
+}
+
+tasks.compileJava {
+    // Optional
+    dependsOn generateProto
 }
 
 application {
