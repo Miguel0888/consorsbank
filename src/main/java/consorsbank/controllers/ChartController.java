@@ -1,11 +1,16 @@
 package consorsbank.controllers;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Pane;
 
 public class ChartController {
+
+    @FXML
+    private ToolBar toolbar;
 
     @FXML
     private ComboBox<String> chartTypeDropdown;

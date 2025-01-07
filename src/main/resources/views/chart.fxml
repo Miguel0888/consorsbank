@@ -3,17 +3,17 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.MainController">
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.ChartController">
     <!-- Top-Bereich: Toolbar -->
     <top>
-        <ToolBar>
-            <Button text="Load Example Chart" onAction="#loadExampleChart" />
+        <ToolBar fx:id="toolbar">
+            <ComboBox fx:id="chartTypeDropdown" promptText="Select Chart Type" />
         </ToolBar>
     </top>
 
     <!-- Center-Bereich: Platzhalter für Diagramm -->
     <center>
-        <Pane fx:id="chartContainer" />
+        <Pane fx:id="chartContainer" prefHeight="400" prefWidth="600" style="-fx-border-color: black;" />
     </center>
 
     <!-- Bottom-Bereich: TextArea für Statusnachrichten -->

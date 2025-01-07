@@ -50,29 +50,29 @@ public class MainController {
     }
 
     private void loadChart() {
-//        try {
-//            // Lade das Chart in den Platzhalter (chartContainer)
-//            FXMLLoader chartLoader = new FXMLLoader(getClass().getResource("/fxml/chart.fxml"));
-//            Pane chartPane = chartLoader.load();
-//
-//            chartContainer.getChildren().clear(); // Vorherige Inhalte entfernen
-//            chartContainer.getChildren().add(chartPane); // Chart hinzufügen
-//            System.out.println("Chart wurde erfolgreich geladen.");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
         try {
-            // Lade die Dummy-View in den Platzhalter
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dummy.fxml"));
-            Pane dummyPane = loader.load();
+            // Lade das Chart in den Platzhalter (chartContainer)
+            FXMLLoader chartLoader = new FXMLLoader(getClass().getResource("/views/chart.fxml"));
+            Pane chartPane = chartLoader.load();
 
             chartContainer.getChildren().clear(); // Vorherige Inhalte entfernen
-            chartContainer.getChildren().add(dummyPane); // Dummy-View hinzufügen
-            System.out.println("Dummy View wurde erfolgreich geladen.");
+            chartContainer.getChildren().add(chartPane); // Chart hinzufügen
+            System.out.println("Chart wurde erfolgreich geladen.");
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+//        try {
+//            // Lade die Dummy-View in den Platzhalter
+//            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dummy.fxml"));
+//            Pane dummyPane = loader.load();
+//
+//            chartContainer.getChildren().clear(); // Vorherige Inhalte entfernen
+//            chartContainer.getChildren().add(dummyPane); // Dummy-View hinzufügen
+//            System.out.println("Dummy View wurde erfolgreich geladen.");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     private void loadMarketData() {
