@@ -17,23 +17,26 @@
         </VBox>
     </top>
     <center>
-        <VBox spacing="5">
-            <!-- Chart Container: Flexibles Wachstum -->
+        <!-- SplitPane zur dynamischen Größenanpassung -->
+        <SplitPane orientation="VERTICAL">
+            <!-- Chart Container -->
             <StackPane fx:id="chartContainer" style="-fx-border-color: black;">
                 <VBox.vgrow>ALWAYS</VBox.vgrow>
             </StackPane>
 
-            <!-- Tabelle mit fixierter Größe -->
+            <!-- Tabelle -->
             <TableView fx:id="marketDataTable" prefHeight="150">
-                <VBox.vgrow>NEVER</VBox.vgrow>
+                <VBox.vgrow>ALWAYS</VBox.vgrow>
                 <columns>
                     <TableColumn fx:id="columnField" text="Field" />
                     <TableColumn fx:id="columnValue" text="Value" />
                 </columns>
             </TableView>
-        </VBox>
+
+            <!-- Textausgabe -->
+            <TextArea fx:id="txtOutput" prefHeight="100">
+                <VBox.vgrow>ALWAYS</VBox.vgrow>
+            </TextArea>
+        </SplitPane>
     </center>
-    <bottom>
-        <TextArea fx:id="txtOutput" prefHeight="100" />
-    </bottom>
 </BorderPane>
