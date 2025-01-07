@@ -1,15 +1,15 @@
 package consorsbank.controllers;
 
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
+import consorsbank.models.Stock;
+import consorsbank.models.Wkn;
 import consorsbank.services.SecureMarketDataService;
-import io.grpc.stub.StreamObserver;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.ToolBar;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,24 +81,28 @@ public class MainController {
 
         txtOutput.setText("Marktdaten werden für WKN " + securityCode + " geladen...\n");
 
+        Wkn wkn = new Wkn(securityCode);
         String stockExchangeId = "OTC";
         String currency = "EUR";
 
-        marketDataService.streamMarketData(securityCode, stockExchangeId, currency, new StreamObserver<>() {
-            @Override
-            public void onNext(SecurityMarketDataReply reply) {
-                javafx.application.Platform.runLater(() -> txtOutput.appendText(reply.toString() + "\n"));
-            }
+        marketDataService.streamMarketData(wkn, stockExchangeId, currency);
 
-            @Override
-            public void onError(Throwable t) {
-                javafx.application.Platform.runLater(() -> txtOutput.appendText("Fehler: " + t.getMessage() + "\n"));
-            }
+        // Periodisch Repository abfragen und aktualisieren
+        new Thread(() -> {
+            try {
+                while (true) {
+                    Stock stock = marketDataService.getStock(wkn);
 
-            @Override
-            public void onCompleted() {
-                javafx.application.Platform.runLater(() -> txtOutput.appendText("Marktdaten-Stream abgeschlossen.\n"));
+                    if (stock != null) {
+                        Platform.runLater(() -> txtOutput.setText(stock.toString()));
+                        break;
+                    }
+
+                    Thread.sleep(500); // Warte kurz, bevor erneut geprüft wird
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-        });
+        }).start();
     }
 }

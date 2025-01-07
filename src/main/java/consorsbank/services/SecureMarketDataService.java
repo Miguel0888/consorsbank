@@ -1,85 +1,62 @@
 package consorsbank.services;
 
-import com.consorsbank.module.tapi.grpc.AccessServiceGrpc;
-import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc;
-import com.consorsbank.module.tapi.grpc.access.LoginReply;
-import com.consorsbank.module.tapi.grpc.access.LoginRequest;
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
-import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataRequest;
-import com.consorsbank.module.tapi.grpc.security.SecurityWithStockExchange;
-import com.consorsbank.module.tapi.grpc.security.SecurityCode;
-import com.consorsbank.module.tapi.grpc.security.SecurityCodeType;
-import com.consorsbank.module.tapi.grpc.stock.StockExchange;
-import consorsbank.config.SecureMarketDataConfig;
-import io.grpc.ManagedChannel;
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import consorsbank.api.clients.grpc.MarketDataClient;
+import consorsbank.models.Stock;
+import consorsbank.models.Wkn;
+import consorsbank.api.mapper.StockMapper;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Service;
 
-import javax.net.ssl.SSLException;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class SecureMarketDataService {
 
-    private final ManagedChannel channel;
-    private final AccessServiceGrpc.AccessServiceBlockingStub accessServiceStub;
-    private final SecurityServiceGrpc.SecurityServiceStub securityServiceStub;
-    private String accessToken;
+    private final MarketDataClient MarketDataClient;
+    private final StockMapper stockMapper;
+    private final Map<Wkn, Stock> stockRepository = new HashMap<>();
 
-    public SecureMarketDataService(SecureMarketDataConfig config) throws SSLException {
-        InputStream certInputStream = new ByteArrayInputStream(config.getCertContent().getBytes());
-
-        this.channel = NettyChannelBuilder.forAddress(config.getHost(), config.getPort())
-                .negotiationType(io.grpc.netty.shaded.io.grpc.netty.NegotiationType.TLS)
-                .sslContext(GrpcSslContexts.forClient().trustManager(certInputStream).build())
-                .build();
-
-        this.accessServiceStub = AccessServiceGrpc.newBlockingStub(channel);
-        this.securityServiceStub = SecurityServiceGrpc.newStub(channel);
-
-        performLogin(config.getSecret());
+    public SecureMarketDataService(MarketDataClient MarketDataClient, StockMapper stockMapper) {
+        this.MarketDataClient = MarketDataClient;
+        this.stockMapper = stockMapper;
     }
 
-    private void performLogin(String secret) {
-        LoginRequest loginRequest = LoginRequest.newBuilder().setSecret(secret).build();
-        LoginReply loginReply = accessServiceStub.login(loginRequest);
+    public void streamMarketData(Wkn wkn, String stockExchangeId, String currency) {
+        MarketDataClient.streamMarketData(wkn.getValue(), stockExchangeId, currency, new StreamObserver<>() {
+            @Override
+            public void onNext(SecurityMarketDataReply reply) {
+                try {
+                    // Map the reply to the domain model using the StockMapper
+                    Stock stock = stockMapper.mapToDomain(reply);
 
-        if (loginReply.hasError()) {
-            throw new IllegalStateException("Login fehlgeschlagen: " + loginReply.getError().getMessage());
-        }
+                    // Update the stock repository
+                    stockRepository.put(wkn, stock);
 
-        this.accessToken = loginReply.getAccessToken();
+                    // Log updated stock
+                    System.out.println("Stock updated: " + stock);
+                } catch (Exception e) {
+                    System.err.println("Error mapping or updating stock: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                System.err.println("Error fetching market data: " + t.getMessage());
+                t.printStackTrace();
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("Market data stream completed for WKN: " + wkn.getValue());
+            }
+        });
     }
 
-    public void streamMarketData(String securityCode, String stockExchangeId, String currency, StreamObserver<SecurityMarketDataReply> observer) {
-        SecurityCode securityCodeObj = SecurityCode.newBuilder()
-                .setCode(securityCode)
-                .setCodeType(SecurityCodeType.WKN)
-                .build();
 
-        StockExchange stockExchange = StockExchange.newBuilder()
-                .setId(stockExchangeId)
-                .build();
-
-        SecurityWithStockExchange securityWithStockExchange = SecurityWithStockExchange.newBuilder()
-                .setSecurityCode(securityCodeObj)
-                .setStockExchange(stockExchange)
-                .build();
-
-        SecurityMarketDataRequest request = SecurityMarketDataRequest.newBuilder()
-                .setAccessToken(this.accessToken)
-                .setSecurityWithStockexchange(securityWithStockExchange)
-                .setCurrency(currency)
-                .build();
-
-        securityServiceStub.streamMarketData(request, observer);
-    }
-
-    public void shutdown() throws InterruptedException {
-        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+    public Stock getStock(Wkn wkn) {
+        return stockRepository.get(wkn);
     }
 }
