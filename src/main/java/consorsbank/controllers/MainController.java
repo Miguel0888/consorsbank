@@ -11,6 +11,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
@@ -31,7 +32,7 @@ public class MainController {
     private ToolBar toolbar;
 
     @FXML
-    private Pane chartContainer;
+    private StackPane chartContainer;
 
     @FXML
     private TextArea txtOutput;
@@ -60,13 +61,11 @@ public class MainController {
 
     private void loadChart() {
         try {
-            // Lade das Chart in den Platzhalter (chartContainer)
             FXMLLoader chartLoader = new FXMLLoader(getClass().getResource("/views/chart.fxml"));
             Pane chartPane = chartLoader.load();
 
-            chartContainer.getChildren().clear(); // Vorherige Inhalte entfernen
-            chartContainer.getChildren().add(chartPane); // Chart hinzufügen
-            System.out.println("Chart wurde erfolgreich geladen.");
+            chartContainer.getChildren().clear();
+            chartContainer.getChildren().add(chartPane); // StackPane passt sich automatisch an
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -19,9 +19,9 @@
     <center>
         <VBox spacing="5">
             <!-- Chart Container: Flexibles Wachstum -->
-            <Pane fx:id="chartContainer" style="-fx-border-color: black;">
+            <StackPane fx:id="chartContainer" style="-fx-border-color: black;">
                 <VBox.vgrow>ALWAYS</VBox.vgrow>
-            </Pane>
+            </StackPane>
 
             <!-- Tabelle mit fixierter Größe -->
             <TableView fx:id="marketDataTable" prefHeight="150">

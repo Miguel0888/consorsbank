@@ -6,6 +6,8 @@ import javafx.scene.chart.*;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 
 public class ChartController {
 
@@ -16,7 +18,7 @@ public class ChartController {
     private ComboBox<String> chartTypeDropdown;
 
     @FXML
-    private Pane chartContainer;
+    private StackPane chartContainer;
 
     private XYChart<String, Number> currentChart;
 
@@ -71,6 +73,9 @@ public class ChartController {
         LineChart<String, Number> lineChart = new LineChart<>(new CategoryAxis(), new NumberAxis());
         lineChart.setTitle("Line Chart");
 
+        // Keine feste Größe setzen, damit das Chart skaliert
+        lineChart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Beispieldaten");
         series.getData().add(new XYChart.Data<>("1", 100));
@@ -80,6 +85,7 @@ public class ChartController {
 
         return lineChart;
     }
+
 
     private BarChart<String, Number> createBarChart() {
         BarChart<String, Number> barChart = new BarChart<>(new CategoryAxis(), new NumberAxis());

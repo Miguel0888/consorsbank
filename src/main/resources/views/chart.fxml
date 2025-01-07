@@ -6,19 +6,14 @@
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.ChartController">
     <!-- Top-Bereich: Toolbar -->
     <top>
-        <ToolBar fx:id="toolbar">
+        <ToolBar>
             <ComboBox fx:id="chartTypeDropdown" promptText="Select Chart Type" />
         </ToolBar>
     </top>
 
     <!-- Center-Bereich: Platzhalter für Diagramm -->
     <center>
-        <!-- Entferne prefHeight und prefWidth, damit sich der Pane flexibel anpasst -->
-        <Pane fx:id="chartContainer" style="-fx-border-color: black;" />
+        <!-- Verwenden Sie StackPane für besseres Wachstum -->
+        <StackPane fx:id="chartContainer" style="-fx-border-color: black;" />
     </center>
-
-    <!-- Bottom-Bereich: TextArea für Statusnachrichten -->
-    <bottom>
-        <TextArea fx:id="txtOutput" prefHeight="100" />
-    </bottom>
 </BorderPane>
