@@ -33,7 +33,7 @@ public class Main extends Application {
     @Override
     public void stop() throws Exception {
         // Schließe Spring Context beim Beenden der Anwendung
-//        springContext.close();
+//        springContext.close(); // Todo: Fix this!
     }
 
     public static void main(String[] args) {

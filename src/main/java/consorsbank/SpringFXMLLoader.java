@@ -18,7 +18,7 @@ public class SpringFXMLLoader {
 
     public FXMLLoader load(String fxmlPath) throws IOException {
         FXMLLoader loader = new FXMLLoader();
-        loader.setControllerFactory(applicationContext::getBean); // Spring für Controller nutzen
+        loader.setControllerFactory(applicationContext::getBean); // Use Spring to create controllers
         InputStream fxmlStream = getClass().getResourceAsStream(fxmlPath);
         if (fxmlStream == null) {
             throw new IOException("Could not find FXML file: " + fxmlPath);

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.MainController">
+    <!-- Top-Bereich: Toolbar -->
+    <top>
+        <ToolBar>
+            <Button text="Load Example Chart" onAction="#loadExampleChart" />
+        </ToolBar>
+    </top>
+
+    <!-- Center-Bereich: Platzhalter für Diagramm -->
+    <center>
+        <Pane fx:id="chartContainer" />
+    </center>
+
+    <!-- Bottom-Bereich: TextArea für Statusnachrichten -->
+    <bottom>
+        <TextArea fx:id="txtOutput" prefHeight="100" />
+    </bottom>
+</BorderPane>
