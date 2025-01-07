@@ -6,6 +6,7 @@ import io.grpc.stub.StreamObserver;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.BorderPane;
@@ -14,9 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Controller
 public class MainController {
+
+    @FXML
+    private ComboBox<String> wknDropdown;
 
     @FXML
     private Button btnLoadMarketData;
@@ -25,9 +31,7 @@ public class MainController {
     private ToolBar toolbar;
 
     @FXML
-    private Pane chartContainer; // Platzhalter für das Chart
-
-    private Pane chartPane; // Bereich für das Chart (geladen durch ChartController)
+    private Pane chartContainer;
 
     @FXML
     private TextArea txtOutput;
@@ -37,11 +41,16 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        // DAX-Werte in das Dropdown hinzufügen
+        List<String> daxWkns = Arrays.asList("710000", "846900", "578580", "823212", "514000");
+        wknDropdown.getItems().addAll(daxWkns);
 
         // Toolbar-Button erstellen
         Button loadChartButton = new Button("📊 Load Chart");
         loadChartButton.setStyle("-fx-font-size: 14px;"); // Schriftgröße anpassen
         loadChartButton.setOnAction(event -> loadChart());
+        // Standardmäßig keine Auswahl
+        wknDropdown.setValue(null);
 
         // Button zur Toolbar hinzufügen
         toolbar.getItems().add(loadChartButton);
@@ -61,24 +70,18 @@ public class MainController {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-//        try {
-//            // Lade die Dummy-View in den Platzhalter
-//            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dummy.fxml"));
-//            Pane dummyPane = loader.load();
-//
-//            chartContainer.getChildren().clear(); // Vorherige Inhalte entfernen
-//            chartContainer.getChildren().add(dummyPane); // Dummy-View hinzufügen
-//            System.out.println("Dummy View wurde erfolgreich geladen.");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
     }
 
     private void loadMarketData() {
-        txtOutput.setText("Marktdaten werden geladen...\n");
+        String securityCode = wknDropdown.getValue();
 
-        String securityCode = "710000"; // Beispielcode
+        if (securityCode == null) {
+            txtOutput.setText("Bitte eine WKN auswählen.\n");
+            return;
+        }
+
+        txtOutput.setText("Marktdaten werden für WKN " + securityCode + " geladen...\n");
+
         String stockExchangeId = "OTC";
         String currency = "EUR";
 

@@ -13,7 +13,8 @@
 
     <!-- Center-Bereich: Platzhalter für Diagramm -->
     <center>
-        <Pane fx:id="chartContainer" prefHeight="400" prefWidth="600" style="-fx-border-color: black;" />
+        <!-- Entferne prefHeight und prefWidth, damit sich der Pane flexibel anpasst -->
+        <Pane fx:id="chartContainer" style="-fx-border-color: black;" />
     </center>
 
     <!-- Bottom-Bereich: TextArea für Statusnachrichten -->
