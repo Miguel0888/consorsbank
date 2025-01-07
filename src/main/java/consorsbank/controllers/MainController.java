@@ -4,16 +4,30 @@ import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
 import consorsbank.services.SecureMarketDataService;
 import io.grpc.stub.StreamObserver;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.ToolBar;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+
+import java.io.IOException;
 
 @Controller
 public class MainController {
 
     @FXML
     private Button btnLoadMarketData;
+
+    @FXML
+    private ToolBar toolbar;
+
+    @FXML
+    private Pane chartContainer; // Platzhalter für das Chart
+
+    private Pane chartPane; // Bereich für das Chart (geladen durch ChartController)
 
     @FXML
     private TextArea txtOutput;
@@ -23,7 +37,30 @@ public class MainController {
 
     @FXML
     public void initialize() {
+
+        // Toolbar-Button erstellen
+        Button loadChartButton = new Button("📊 Load Chart");
+        loadChartButton.setStyle("-fx-font-size: 14px;"); // Schriftgröße anpassen
+        loadChartButton.setOnAction(event -> loadChart());
+
+        // Button zur Toolbar hinzufügen
+        toolbar.getItems().add(loadChartButton);
+
         btnLoadMarketData.setOnAction(event -> loadMarketData());
+    }
+
+    private void loadChart() {
+        try {
+            // Lade das Chart in den Platzhalter (chartContainer)
+            FXMLLoader chartLoader = new FXMLLoader(getClass().getResource("/fxml/chart.fxml"));
+            Pane chartPane = chartLoader.load();
+
+            chartContainer.getChildren().clear(); // Vorherige Inhalte entfernen
+            chartContainer.getChildren().add(chartPane); // Chart hinzufügen
+            System.out.println("Chart wurde erfolgreich geladen.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadMarketData() {

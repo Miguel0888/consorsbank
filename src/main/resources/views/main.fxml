@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.MainController">
     <top>
-        <Label text="ConsorsBank Dashboard" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+        <VBox>
+            <Label text="ConsorsBank Dashboard" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+            <ToolBar fx:id="toolbar" />
+        </VBox>
     </top>
     <center>
         <VBox spacing="10" alignment="CENTER">
             <Button fx:id="btnLoadMarketData" text="Load Market Data" />
+            <Pane fx:id="chartContainer" prefHeight="300" /> <!-- Platzhalter für das Chart -->
             <TableView fx:id="marketDataTable">
                 <columns>
                     <TableColumn fx:id="columnField" text="Field" />
