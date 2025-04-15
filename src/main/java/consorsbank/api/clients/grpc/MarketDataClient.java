@@ -41,7 +41,12 @@ public class MarketDataClient {
         this.accessServiceStub = AccessServiceGrpc.newBlockingStub(channel);
         this.securityServiceStub = SecurityServiceGrpc.newStub(channel);
 
-        performLogin(config.getSecret());
+        try {
+            // Avoid crash if ActiveTrader is not running and has started the server either
+            performLogin(config.getSecret());
+        } catch (Exception e) {
+            System.err.println("Login failed: " + e.getMessage());
+        }
     }
 
     private void performLogin(String secret) {
