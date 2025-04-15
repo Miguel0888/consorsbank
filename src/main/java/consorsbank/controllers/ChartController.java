@@ -15,6 +15,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import util.TestingUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -62,11 +63,7 @@ public class ChartController {
         chart.setTitle("Candlestick Chart mit Stock-Daten");
 
         // Beispieldaten – später durch echte Kursdaten ersetzen
-        List<IOhlcvItem> stocks = new ArrayList<>();
-        stocks.add(new Stock(new Date(), 49.2, 50.5, 48.9, 50.1, 15000));
-        stocks.add(new Stock(new Date(), 50.1, 51.0, 49.5, 49.8, 12000));
-        stocks.add(new Stock(new Date(), 49.8, 50.2, 48.8, 49.0, 18000));
-        stocks.add(new Stock(new Date(), 49.0, 50.0, 48.0, 49.7, 16000));
+        List<IOhlcvItem> stocks = TestingUtils.generateTestStocks(30); // 30 Tage z.B.
 
         // Dataset befüllen
         SimpleOhlcv ohlcv = new SimpleOhlcv();
