@@ -2,13 +2,19 @@
 package consorsbank.controllers;
 
 import consorsbank.models.Stock;
+import io.fair_acc.chartfx.axes.spi.format.DefaultTickUnitSupplier;
 import io.fair_acc.chartfx.XYChart;
+import io.fair_acc.chartfx.axes.AxisLabelFormatter;
+import io.fair_acc.chartfx.axes.TickUnitSupplier;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
 import io.fair_acc.chartfx.renderer.spi.financial.CandleStickRenderer;
 import io.fair_acc.chartfx.renderer.spi.financial.FinancialTheme;
+import io.fair_acc.dataset.spi.fastutil.DoubleArrayList;
 import io.fair_acc.dataset.spi.financial.OhlcvDataSet;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
@@ -17,6 +23,10 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import util.TestingUtils;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -57,6 +67,56 @@ public class ChartController {
 
     private Node createCandlestickChartWithStocks() {
         DefaultNumericAxis xAxis = new DefaultNumericAxis("Time");
+        xAxis.setAxisLabelFormatter(new AxisLabelFormatter() {
+            private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM");
+
+            @Override
+            public Number fromString(String s) {
+                return null;
+            }
+
+            @Override
+            public TickUnitSupplier getTickUnitSupplier() {
+                return new DefaultTickUnitSupplier(); // statt null!
+            }
+
+            @Override
+            public void setTickUnitSupplier(TickUnitSupplier tickUnitSupplier) {}
+
+            @Override
+            public ObjectProperty<TickUnitSupplier> tickUnitSupplierProperty() {
+                return new SimpleObjectProperty<>();
+            }
+
+            @Override
+            public String toString(Number value) {
+                long millis = (long)(value.doubleValue() * 1000); // x-Wert kommt als Sekunden
+                LocalDateTime time = Instant.ofEpochMilli(millis)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime();
+                return formatter.format(time);
+            }
+
+            @Override
+            public void updateFormatter(DoubleArrayList ticks, double scale) {
+                if (ticks.isEmpty()) return;
+                double min = ticks.getDouble(0);
+                double max = ticks.getDouble(ticks.size() - 1);
+                double rangeInSeconds = max - min;
+                double rangeInHours = rangeInSeconds / 3600.0;
+
+                if (rangeInHours < 1) {
+                    formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+                } else if (rangeInHours < 24) {
+                    formatter = DateTimeFormatter.ofPattern("HH:mm");
+                } else if (rangeInHours < 24 * 7) {
+                    formatter = DateTimeFormatter.ofPattern("dd.MM HH:mm");
+                } else {
+                    formatter = DateTimeFormatter.ofPattern("dd.MM.yy");
+                }
+            }
+        });
+
         DefaultNumericAxis yAxis = new DefaultNumericAxis("Price");
 
         XYChart chart = new XYChart(xAxis, yAxis);

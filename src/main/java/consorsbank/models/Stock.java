@@ -5,6 +5,7 @@ import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 
 public class Stock implements IOhlcvItem {
@@ -322,9 +323,7 @@ public class Stock implements IOhlcvItem {
 
     @Override
     public Date getTimeStamp() {
-        return lastDateTime != null
-                ? java.sql.Timestamp.valueOf(lastDateTime)
-                : java.sql.Timestamp.valueOf(previousDate.atStartOfDay());
+        return Date.from(lastDateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
 
     @Override
