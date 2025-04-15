@@ -1,9 +1,16 @@
 package consorsbank.models;
 
+import io.fair_acc.dataset.spi.financial.api.attrs.AttributeModel;
+import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 
-public class Stock {
+public class Stock implements IOhlcvItem {
+
+    private final AttributeModel addon = new SimpleAttributeModel();
+
 
     private final Wkn wkn;
     private final String stockExchange;
@@ -46,6 +53,18 @@ public class Stock {
         this.wkn = wkn;
         this.stockExchange = stockExchange;
     }
+
+    public Stock(Date timestamp, double open, double high, double low, double close, double volume) {
+        this.wkn = new Wkn("DUMMY"); // oder null, wenn du keine brauchst
+        this.stockExchange = "OTC";
+        this.lastDateTime = timestamp.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+        this.openPrice = open;
+        this.highPrice = high;
+        this.lowPrice = low;
+        this.lastPrice = close;
+        this.todayVolume = volume;
+    }
+
 
     // Getter und Setter
 
@@ -298,5 +317,55 @@ public class Stock {
                 ", Previous Date=" + (previousDate != null ? previousDate.toString() : "N/A") +
                 '}';
     }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public Date getTimeStamp() {
+        return lastDateTime != null
+                ? java.sql.Timestamp.valueOf(lastDateTime)
+                : java.sql.Timestamp.valueOf(previousDate.atStartOfDay());
+    }
+
+    @Override
+    public double getOpen() {
+        return openPrice;
+    }
+
+    @Override
+    public double getHigh() {
+        return highPrice;
+    }
+
+    @Override
+    public double getLow() {
+        return lowPrice;
+    }
+
+    @Override
+    public double getClose() {
+        return lastPrice; // "lastPrice" als Schlusskurs interpretieren
+    }
+
+    @Override
+    public double getVolume() {
+        return todayVolume;
+    }
+
+    @Override
+    public double getOpenInterest() {
+        return 0.0; // optional nicht verwendet
+    }
+
+
+    @Override
+    public AttributeModel getAddon() {
+        return addon;
+    }
+
+    @Override
+    public AttributeModel getAddonOrCreate() {
+        return addon;
+    }
+
 }

@@ -1,13 +1,24 @@
+
 package consorsbank.controllers;
 
-import javafx.event.ActionEvent;
+import consorsbank.models.Stock;
+import io.fair_acc.chartfx.XYChart;
+import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
+import io.fair_acc.chartfx.plugins.Zoomer;
+import io.fair_acc.chartfx.renderer.spi.financial.CandleStickRenderer;
+import io.fair_acc.chartfx.renderer.spi.financial.FinancialTheme;
+import io.fair_acc.dataset.spi.financial.OhlcvDataSet;
+import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
 import javafx.fxml.FXML;
-import javafx.scene.chart.*;
+import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ToolBar;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class ChartController {
 
@@ -20,139 +31,57 @@ public class ChartController {
     @FXML
     private StackPane chartContainer;
 
-    private XYChart<String, Number> currentChart;
+    private Node currentChart;
 
     public void initialize() {
-        // Dropdown mit Diagrammtypen füllen
-        chartTypeDropdown.getItems().addAll("Candlestick", "Bar", "Dot", "Line", "Step", "Mountain");
-
-        // Event-Handler für die Dropdown-Auswahl
+        chartTypeDropdown.getItems().addAll("Candlestick");
         chartTypeDropdown.setOnAction(event -> updateChart());
 
-        // Standardmäßig Line-Diagramm anzeigen
-        chartTypeDropdown.setValue("Line");
+        chartTypeDropdown.setValue("Candlestick");
         updateChart();
     }
 
     public void updateChart() {
         String selectedType = chartTypeDropdown.getValue();
-
-        // Bestehendes Diagramm entfernen
         chartContainer.getChildren().clear();
 
-        // Diagramm basierend auf der Auswahl erstellen
-        switch (selectedType) {
-            case "Line":
-                currentChart = createLineChart();
-                break;
-            case "Candlestick":
-                currentChart = createCandlestickChart();
-                break;
-            case "Bar":
-                currentChart = createBarChart();
-                break;
-            case "Dot":
-                currentChart = createDotChart();
-                break;
-            case "Step":
-                currentChart = createStepChart();
-                break;
-            case "Mountain":
-                currentChart = createMountainChart();
-                break;
+        if ("Candlestick".equals(selectedType)) {
+            currentChart = createCandlestickChartWithStocks();
         }
 
-        // Diagramm hinzufügen
         if (currentChart != null) {
             chartContainer.getChildren().add(currentChart);
         }
     }
 
-    // Methoden für die Erstellung von Diagrammen bleiben unverändert
-    private LineChart<String, Number> createLineChart() {
-        LineChart<String, Number> lineChart = new LineChart<>(new CategoryAxis(), new NumberAxis());
-        lineChart.setTitle("Line Chart");
+    private Node createCandlestickChartWithStocks() {
+        DefaultNumericAxis xAxis = new DefaultNumericAxis("Time");
+        DefaultNumericAxis yAxis = new DefaultNumericAxis("Price");
 
-        // Keine feste Größe setzen, damit das Chart skaliert
-        lineChart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+        XYChart chart = new XYChart(xAxis, yAxis);
+        chart.setTitle("Candlestick Chart mit Stock-Daten");
 
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Beispieldaten");
-        series.getData().add(new XYChart.Data<>("1", 100));
-        series.getData().add(new XYChart.Data<>("2", 110));
-        series.getData().add(new XYChart.Data<>("3", 105));
-        lineChart.getData().add(series);
+        // Beispieldaten – später durch echte Kursdaten ersetzen
+        List<IOhlcvItem> stocks = new ArrayList<>();
+        stocks.add(new Stock(new Date(), 49.2, 50.5, 48.9, 50.1, 15000));
+        stocks.add(new Stock(new Date(), 50.1, 51.0, 49.5, 49.8, 12000));
+        stocks.add(new Stock(new Date(), 49.8, 50.2, 48.8, 49.0, 18000));
+        stocks.add(new Stock(new Date(), 49.0, 50.0, 48.0, 49.7, 16000));
 
-        return lineChart;
-    }
+        // Dataset befüllen
+        SimpleOhlcv ohlcv = new SimpleOhlcv();
+        ohlcv.addAll(stocks); // stocks ist List<Stock>, und Stock implements IOhlcvItem
 
+        OhlcvDataSet dataSet = new OhlcvDataSet("Stock Dataset");
+        dataSet.setData(ohlcv);
 
-    private BarChart<String, Number> createBarChart() {
-        BarChart<String, Number> barChart = new BarChart<>(new CategoryAxis(), new NumberAxis());
-        barChart.setTitle("Bar Chart");
+        chart.getRenderers().setAll(new CandleStickRenderer());
+        chart.getDatasets().setAll(dataSet);
+        chart.getPlugins().add(new Zoomer());
+        chart.setStyle(FinancialTheme.Default.name());
 
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Beispieldaten");
-        series.getData().add(new XYChart.Data<>("1", 100));
-        series.getData().add(new XYChart.Data<>("2", 110));
-        series.getData().add(new XYChart.Data<>("3", 105));
-        barChart.getData().add(series);
+        chart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
 
-        return barChart;
-    }
-
-    private XYChart<String, Number> createCandlestickChart() {
-        // Eine Implementierung für Candlestick mit einer ChartFX-Library oder benutzerdefiniert kann hier integriert werden
-        LineChart<String, Number> dummyChart = new LineChart<>(new CategoryAxis(), new NumberAxis());
-        dummyChart.setTitle("Candlestick Chart (Platzhalter)");
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.getData().add(new XYChart.Data<>("1", 100));
-        series.getData().add(new XYChart.Data<>("2", 110));
-        series.getData().add(new XYChart.Data<>("3", 105));
-        dummyChart.getData().add(series);
-
-        return dummyChart;
-    }
-
-    private LineChart<String, Number> createDotChart() {
-        LineChart<String, Number> dotChart = new LineChart<>(new CategoryAxis(), new NumberAxis());
-        dotChart.setTitle("Dot Chart");
-        dotChart.setStyle("-fx-symbols-visible: true;"); // Punkte sichtbar machen
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.getData().add(new XYChart.Data<>("1", 100));
-        series.getData().add(new XYChart.Data<>("2", 110));
-        series.getData().add(new XYChart.Data<>("3", 105));
-        dotChart.getData().add(series);
-
-        return dotChart;
-    }
-
-    private LineChart<String, Number> createStepChart() {
-        LineChart<String, Number> stepChart = new LineChart<>(new CategoryAxis(), new NumberAxis());
-        stepChart.setTitle("Step Chart");
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.getData().add(new XYChart.Data<>("1", 100));
-        series.getData().add(new XYChart.Data<>("2", 110));
-        series.getData().add(new XYChart.Data<>("3", 105));
-        stepChart.getData().add(series);
-
-        return stepChart;
-    }
-
-    private LineChart<String, Number> createMountainChart() {
-        LineChart<String, Number> mountainChart = new LineChart<>(new CategoryAxis(), new NumberAxis());
-        mountainChart.setTitle("Mountain Chart");
-        mountainChart.setStyle("-fx-area-fill: lightblue;");
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.getData().add(new XYChart.Data<>("1", 100));
-        series.getData().add(new XYChart.Data<>("2", 110));
-        series.getData().add(new XYChart.Data<>("3", 105));
-        mountainChart.getData().add(series);
-
-        return mountainChart;
+        return chart;
     }
 }
