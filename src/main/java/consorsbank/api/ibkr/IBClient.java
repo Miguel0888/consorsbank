@@ -33,13 +33,12 @@ public class IBClient implements EWrapper {
 
     @Override
     public void tickPrice(int tickerId, int field, double price, TickAttrib attribs) {
-        System.out.println("Tick: " + price);
-        // hier kannst du live Bar-Objekte oder Stock-Objekte bauen
+        System.out.println("Tick: " + tickerId + " | Field: " + field + " | Price: " + price);
     }
 
     @Override
     public void tickSize(int i, int i1, Decimal decimal) {
-
+        // Optional, wenn du auch Größen brauchst
     }
 
     @Override
