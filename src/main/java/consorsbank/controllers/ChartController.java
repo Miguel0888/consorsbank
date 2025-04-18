@@ -20,13 +20,16 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import org.ta4j.core.BaseBar;
 import util.TestingUtils;
+import consorsbank.model.chart.BarOhlcvAdapter;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ChartController {
 
@@ -67,40 +70,31 @@ public class ChartController {
         xAxis.setAxisLabelFormatter(new AxisLabelFormatter() {
             private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM");
 
-            @Override
-            public Number fromString(String s) {
-                return null;
+            @Override public Number fromString(String s) { return null; }
+
+            @Override public TickUnitSupplier getTickUnitSupplier() {
+                return new DefaultTickUnitSupplier();
             }
 
-            @Override
-            public TickUnitSupplier getTickUnitSupplier() {
-                return new DefaultTickUnitSupplier(); // statt null!
-            }
+            @Override public void setTickUnitSupplier(TickUnitSupplier tickUnitSupplier) {}
 
-            @Override
-            public void setTickUnitSupplier(TickUnitSupplier tickUnitSupplier) {}
-
-            @Override
-            public ObjectProperty<TickUnitSupplier> tickUnitSupplierProperty() {
+            @Override public ObjectProperty<TickUnitSupplier> tickUnitSupplierProperty() {
                 return new SimpleObjectProperty<>();
             }
 
-            @Override
-            public String toString(Number value) {
-                long millis = (long)(value.doubleValue() * 1000); // x-Wert kommt als Sekunden
+            @Override public String toString(Number value) {
+                long millis = (long)(value.doubleValue() * 1000);
                 LocalDateTime time = Instant.ofEpochMilli(millis)
                         .atZone(ZoneId.systemDefault())
                         .toLocalDateTime();
                 return formatter.format(time);
             }
 
-            @Override
-            public void updateFormatter(DoubleArrayList ticks, double scale) {
+            @Override public void updateFormatter(DoubleArrayList ticks, double scale) {
                 if (ticks.isEmpty()) return;
                 double min = ticks.getDouble(0);
                 double max = ticks.getDouble(ticks.size() - 1);
-                double rangeInSeconds = max - min;
-                double rangeInHours = rangeInSeconds / 3600.0;
+                double rangeInHours = (max - min) / 3600.0;
 
                 if (rangeInHours < 1) {
                     formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -115,16 +109,17 @@ public class ChartController {
         });
 
         DefaultNumericAxis yAxis = new DefaultNumericAxis("Price");
-
         XYChart chart = new XYChart(xAxis, yAxis);
         chart.setTitle("Candlestick Chart mit Stock-Daten");
 
-        // Beispieldaten – später durch echte Kursdaten ersetzen
-        List<IOhlcvItem> stocks = TestingUtils.generateTestStocks(30); // 30 Tage z.B.
+        List<BaseBar> bars = TestingUtils.generateTestBars(30);
+        List<IOhlcvItem> items = bars.stream()
+                .map(BarOhlcvAdapter::new)
+                .map(item -> (IOhlcvItem) item)
+                .collect(Collectors.toList());
 
-        // Dataset befüllen
         SimpleOhlcv ohlcv = new SimpleOhlcv();
-        ohlcv.addAll(stocks); // stocks ist List<Stock>, und Stock implements IOhlcvItem
+        ohlcv.addAll(items);
 
         OhlcvDataSet dataSet = new OhlcvDataSet("Stock Dataset");
         dataSet.setData(ohlcv);
@@ -135,7 +130,7 @@ public class ChartController {
         chart.setStyle(FinancialTheme.Default.name());
 
         chart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
-
         return chart;
     }
+
 }

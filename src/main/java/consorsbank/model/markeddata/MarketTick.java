@@ -1,7 +1,7 @@
 package consorsbank.model.markeddata;
 
-import consorsbank.model.chart.TA4JBarImpl;
 import org.ta4j.core.Bar;
+import org.ta4j.core.BaseBar;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +22,7 @@ class MarketTick {
      * @param interval
      * @return
      */
-    public List<Bar> aggregateToBars(List<MarketTick> ticks, Duration interval) {
+    public List<Bar> aggregateToBaseBars(List<MarketTick> ticks, Duration interval) {
         long intervalMillis = interval.toMillis();
 
         return ticks.stream()
@@ -47,10 +47,15 @@ class MarketTick {
                             java.time.ZoneId.systemDefault()
                     );
 
-                    return new TA4JBarImpl(bucketStart, open, high, low, close, volume);
+                    return new BaseBar(
+                            interval,
+                            bucketStart.atZone(java.time.ZoneId.systemDefault()),
+                            open, high, low, close, volume
+                    );
                 })
-                .sorted((a, b) -> a.getEndTime().compareTo(b.getEndTime())) // optional, falls Sortierung gewünscht
+                .sorted((a, b) -> a.getEndTime().compareTo(b.getEndTime()))
                 .collect(Collectors.toList());
+
     }
 
 }
