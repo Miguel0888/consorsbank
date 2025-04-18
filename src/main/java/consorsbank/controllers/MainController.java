@@ -29,6 +29,9 @@ public class MainController {
     private Button btnLoadMarketData;
 
     @FXML
+    private Button loadChartButton;
+
+    @FXML
     private ToolBar toolbar;
 
     @FXML
@@ -47,7 +50,7 @@ public class MainController {
         wknDropdown.getItems().addAll(daxWkns);
 
         // Toolbar-Button erstellen
-        Button loadChartButton = new Button("📊 Load Chart");
+        loadChartButton = new Button("📊 Load Chart");
         loadChartButton.setStyle("-fx-font-size: 14px;"); // Schriftgröße anpassen
         loadChartButton.setOnAction(event -> loadChart());
         // Standardmäßig keine Auswahl

@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.ChartController">
+
     <!-- Top-Bereich: Toolbar -->
     <top>
-        <ToolBar>
+        <ToolBar fx:id="toolbar">
             <ComboBox fx:id="chartTypeDropdown" promptText="Select Chart Type" />
+            <ComboBox fx:id="indicatorDropdown" promptText="Select Indicator" />
         </ToolBar>
     </top>
 
-    <!-- Center-Bereich: Platzhalter für Diagramm -->
+    <!-- Center-Bereich: Platzhalter für das Chart -->
     <center>
-        <!-- Verwenden Sie StackPane für besseres Wachstum -->
         <StackPane fx:id="chartContainer" style="-fx-border-color: black;" />
     </center>
+
 </BorderPane>
