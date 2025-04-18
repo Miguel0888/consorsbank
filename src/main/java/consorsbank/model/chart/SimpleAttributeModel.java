@@ -1,4 +1,4 @@
-package consorsbank.model;
+package consorsbank.model.chart;
 
 import io.fair_acc.dataset.spi.financial.api.attrs.AttributeModel;
 

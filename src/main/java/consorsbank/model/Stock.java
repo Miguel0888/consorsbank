@@ -1,5 +1,6 @@
 package consorsbank.model;
 
+import consorsbank.model.chart.SimpleAttributeModel;
 import io.fair_acc.dataset.spi.financial.api.attrs.AttributeModel;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
 

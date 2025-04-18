@@ -1,6 +1,6 @@
 package consorsbank.model.markeddata;
 
-import consorsbank.model.chartanalysis.TA4JBarImpl;
+import consorsbank.model.chart.TA4JBarImpl;
 import org.ta4j.core.Bar;
 
 import java.time.LocalDateTime;
