@@ -1,4 +1,4 @@
-package consorsbank.api.mapper;
+package consorsbank.api.consorsbank.mapper;
 
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
 import consorsbank.models.Stock;

@@ -1,4 +1,4 @@
-package consorsbank.api.clients.grpc;
+package consorsbank.api.consorsbank.clients.grpc;
 
 import com.consorsbank.module.tapi.grpc.AccessServiceGrpc;
 import com.consorsbank.module.tapi.grpc.SecurityServiceGrpc;

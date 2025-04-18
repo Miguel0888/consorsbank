@@ -11,16 +11,22 @@ version = '1.0'
 
 repositories {
     mavenCentral()
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 dependencies {
     // Spring Boot Starter
     implementation 'org.springframework.boot:spring-boot-starter'
 
-    // gRPC Spring Boot Starter für Spring Boot 3
+    // IBKR API
+    implementation name: 'TwsApi'
+
+    // Consorsbank: gRPC Spring Boot Starter für Spring Boot 3
     implementation 'net.devh:grpc-spring-boot-starter:3.1.0.RELEASE'
 
-    // gRPC und Protobuf
+    // Consorsbank: gRPC und Protobuf
     implementation 'io.grpc:grpc-netty:1.57.0'
     implementation 'io.grpc:grpc-protobuf:1.57.0'
     implementation 'io.grpc:grpc-stub:1.57.0'

@@ -1,10 +1,10 @@
 package consorsbank.services;
 
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
-import consorsbank.api.clients.grpc.MarketDataClient;
+import consorsbank.api.consorsbank.clients.grpc.MarketDataClient;
 import consorsbank.models.Stock;
 import consorsbank.models.Wkn;
-import consorsbank.api.mapper.StockMapper;
+import consorsbank.api.consorsbank.mapper.StockMapper;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Service;
 
