@@ -150,29 +150,43 @@ public class ChartController {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void addSMAOverlay(XYChart chart, List<BaseBar> bars, int period, String name) {
+        // TA4J-Serie aufbauen
+        BarSeries series = new BaseBarSeries("SMA Series");
+        bars.forEach(series::addBar);
+
+        // SMA berechnen
+        SMAIndicator sma = new SMAIndicator(new ClosePriceIndicator(series), period);
+
+        // Zeit und SMA-Werte extrahieren
         DoubleArrayList x = new DoubleArrayList();
         DoubleArrayList y = new DoubleArrayList();
 
-        for (BaseBar bar : bars) {
-            long seconds = bar.getEndTime().toEpochSecond();
+        for (int i = 0; i < series.getBarCount(); i++) {
+            long seconds = series.getBar(i).getEndTime().toEpochSecond(); // ACHTUNG: in Sekunden!
             x.add(seconds);
-            y.add(100.0); // Konstanter Wert, um zu sehen, ob Linie sichtbar ist
+            y.add(sma.getValue(i).doubleValue());
         }
 
+        // In Arrays umwandeln
         double[] xArr = Arrays.copyOf(x.elements(), x.size());
         double[] yArr = Arrays.copyOf(y.elements(), y.size());
 
+        // Dataset anlegen
         DefaultDataSet dataSet = new DefaultDataSet(name);
         dataSet.set(xArr, yArr);
 
+        // Renderer vorbereiten
         ReducingLineRenderer lineRenderer = new ReducingLineRenderer();
         lineRenderer.setMaxPoints(1000);
-        lineRenderer.setStyle("-fx-stroke: red; -fx-stroke-width: 2;");
+        lineRenderer.setStyle("-fx-stroke: blue; -fx-stroke-width: 2;"); // Auffälliges Blau
 
-        lineRenderer.getDatasets().add(dataSet); // <--- WICHTIG!!!
+        // Dataset direkt zuweisen (‼️)
+        lineRenderer.getDatasets().add(dataSet);
 
+        // Zum Chart hinzufügen
         chart.getRenderers().add(lineRenderer);
     }
+
 
 
     private void addDebugGrid(XYChart chart) {
