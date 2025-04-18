@@ -1,4 +1,4 @@
-package consorsbank.models.persistence;
+package consorsbank.model.persistence;
 
 import io.fair_acc.dataset.spi.financial.api.attrs.AttributeModel;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcv;

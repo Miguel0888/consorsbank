@@ -1,4 +1,4 @@
-package consorsbank.models;
+package consorsbank.model;
 
 public class Wkn {
     private final String value;

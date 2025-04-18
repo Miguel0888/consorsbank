@@ -1,8 +1,8 @@
 package consorsbank.api.consorsbank.mapper;
 
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
-import consorsbank.models.Stock;
-import consorsbank.models.Wkn;
+import consorsbank.model.Stock;
+import consorsbank.model.Wkn;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

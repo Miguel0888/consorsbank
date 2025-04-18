@@ -1,6 +1,6 @@
 package util;
 
-import consorsbank.models.Stock;
+import consorsbank.model.Stock;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
 
 import java.time.LocalDateTime;

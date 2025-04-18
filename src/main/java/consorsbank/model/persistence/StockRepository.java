@@ -1,7 +1,7 @@
-package consorsbank.models.persistence;
+package consorsbank.model.persistence;
 
-import consorsbank.models.Stock;
-import consorsbank.models.Wkn;
+import consorsbank.model.Stock;
+import consorsbank.model.Wkn;
 
 import java.util.HashMap;
 import java.util.Map;

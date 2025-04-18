@@ -1,7 +1,6 @@
 
 package consorsbank.controllers;
 
-import consorsbank.models.Stock;
 import io.fair_acc.chartfx.axes.spi.format.DefaultTickUnitSupplier;
 import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.AxisLabelFormatter;
@@ -27,8 +26,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class ChartController {

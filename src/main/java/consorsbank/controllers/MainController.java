@@ -1,7 +1,7 @@
 package consorsbank.controllers;
 
-import consorsbank.models.Stock;
-import consorsbank.models.Wkn;
+import consorsbank.model.Stock;
+import consorsbank.model.Wkn;
 import consorsbank.services.SecureMarketDataService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
