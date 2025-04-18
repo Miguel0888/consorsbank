@@ -35,6 +35,20 @@ dependencies {
     // For Stock Charts
     implementation 'io.fair-acc:chartfx:11.3.1'
 
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-parameter-store:3.0.1'
+
+    // Stock Analysis
+    implementation("org.ta4j:ta4j-core:0.17")
+    implementation("org.ojalgo:ojalgo:55.1.2")
+    implementation("com.opengamma.strata:strata-basics:2.12.55")
+    implementation("com.opengamma.strata:strata-collect:2.12.55")
+    implementation("com.opengamma.strata:strata-product:2.12.55")
+    implementation("com.opengamma.strata:strata-data:2.12.55")
+
+    // AI Support
+    implementation("dev.langchain4j:langchain4j:0.36.2")
+    implementation("dev.langchain4j:langchain4j-open-ai:0.36.2")
+
     // OkHttp für HTTP-Anfragen
     implementation 'com.squareup.okhttp3:okhttp:4.11.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
