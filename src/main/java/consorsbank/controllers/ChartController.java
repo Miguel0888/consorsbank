@@ -7,8 +7,11 @@ import io.fair_acc.chartfx.axes.AxisLabelFormatter;
 import io.fair_acc.chartfx.axes.TickUnitSupplier;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
+import io.fair_acc.chartfx.renderer.spi.GridRenderer;
+import io.fair_acc.chartfx.renderer.spi.ReducingLineRenderer;
 import io.fair_acc.chartfx.renderer.spi.financial.CandleStickRenderer;
 import io.fair_acc.chartfx.renderer.spi.financial.FinancialTheme;
+import io.fair_acc.dataset.spi.DefaultDataSet;
 import io.fair_acc.dataset.spi.fastutil.DoubleArrayList;
 import io.fair_acc.dataset.spi.financial.OhlcvDataSet;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
@@ -20,7 +23,11 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBar;
+import org.ta4j.core.BaseBarSeries;
+import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import util.TestingUtils;
 import consorsbank.model.chart.BarOhlcvAdapter;
 
@@ -28,6 +35,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -83,8 +91,8 @@ public class ChartController {
             }
 
             @Override public String toString(Number value) {
-                long millis = (long)(value.doubleValue() * 1000);
-                LocalDateTime time = Instant.ofEpochMilli(millis)
+                long seconds = value.longValue(); // <-- ACHTUNG: Sekundengenau!
+                LocalDateTime time = Instant.ofEpochSecond(seconds)
                         .atZone(ZoneId.systemDefault())
                         .toLocalDateTime();
                 return formatter.format(time);
@@ -126,11 +134,60 @@ public class ChartController {
 
         chart.getRenderers().setAll(new CandleStickRenderer());
         chart.getDatasets().setAll(dataSet);
+
+        // 🔥 SMA hinzufügen for Testing
+        addSMAOverlay(chart, bars, 14, "SMA 14");
+
+        addDebugGrid(chart);
+
         chart.getPlugins().add(new Zoomer());
         chart.setStyle(FinancialTheme.Default.name());
 
         chart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
         return chart;
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void addSMAOverlay(XYChart chart, List<BaseBar> bars, int period, String name) {
+        DoubleArrayList x = new DoubleArrayList();
+        DoubleArrayList y = new DoubleArrayList();
+
+        for (BaseBar bar : bars) {
+            long seconds = bar.getEndTime().toEpochSecond();
+            x.add(seconds);
+            y.add(100.0); // Konstanter Wert, um zu sehen, ob Linie sichtbar ist
+        }
+
+        double[] xArr = Arrays.copyOf(x.elements(), x.size());
+        double[] yArr = Arrays.copyOf(y.elements(), y.size());
+
+        DefaultDataSet dataSet = new DefaultDataSet(name);
+        dataSet.set(xArr, yArr);
+
+        ReducingLineRenderer lineRenderer = new ReducingLineRenderer();
+        lineRenderer.setMaxPoints(1000);
+        lineRenderer.setStyle("-fx-stroke: red; -fx-stroke-width: 2;");
+
+        lineRenderer.getDatasets().add(dataSet); // <--- WICHTIG!!!
+
+        chart.getRenderers().add(lineRenderer);
+    }
+
+
+    private void addDebugGrid(XYChart chart) {
+        GridRenderer grid = new GridRenderer(chart);
+        grid.setDrawOnTop(true); // damit es sichtbar bleibt, egal was passiert
+        chart.getRenderers().add(grid);
+    }
+
+
+
+
+
+
+
+
+
 
 }
