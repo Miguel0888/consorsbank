@@ -24,6 +24,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import consorsbank.model.Stock;
+import consorsbank.model.Wkn;
+import consorsbank.services.MarketDataListener;
+import javafx.application.Platform;
+
+import java.time.format.DateTimeFormatter;
+
 @Controller
 public class MainController {
 
@@ -58,6 +65,63 @@ public class MainController {
 
     private final ActiveTraderConnectionMonitor connectionMonitor;
 
+    private volatile Wkn activeWkn;
+
+    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    private final MarketDataListener debugListener = new MarketDataListener() {
+        @Override
+        public void onStockUpdated(final Wkn wkn, final Stock stock) {
+            if (activeWkn == null || wkn == null || stock == null) {
+                return;
+            }
+            if (!activeWkn.getValue().equals(wkn.getValue())) {
+                return;
+            }
+
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    appendDebugLine(stock);
+                }
+            });
+        }
+    };
+
+    private void appendDebugLine(Stock stock) {
+        String time = stock.getLastDateTime() == null ? "--:--:--" : timeFormatter.format(stock.getLastDateTime());
+
+        String line =
+                time
+                        + " last=" + stock.getLastPrice()
+                        + " bid=" + stock.getBidPrice()
+                        + " ask=" + stock.getAskPrice()
+                        + " open=" + stock.getOpenPrice()
+                        + " high=" + stock.getHighPrice()
+                        + " low=" + stock.getLowPrice()
+                        + "\n";
+
+        txtOutput.appendText(line);
+        trimTextAreaIfTooLarge(txtOutput, 12000);
+    }
+
+    private void trimTextAreaIfTooLarge(TextArea area, int maxChars) {
+        String text = area.getText();
+        if (text.length() <= maxChars) {
+            return;
+        }
+
+        int start = text.length() - maxChars;
+        int cut = text.indexOf('\n', start);
+        if (cut < 0) {
+            cut = start;
+        }
+
+        area.setText(text.substring(cut));
+        area.positionCaret(area.getText().length());
+    }
+
+
     private final ActiveTraderConnectionListener uiConnectionListener = new ActiveTraderConnectionListener() {
         @Override
         public void onStatusChanged(final ActiveTraderConnectionStatus status) {
@@ -88,10 +152,12 @@ public class MainController {
         initializeToolbar();
         initializeActions();
         initializeConnectionStatus();
+        marketDataService.addListener(debugListener);
     }
 
     @PreDestroy
     public void onDestroy() {
+        marketDataService.removeListener(debugListener);
         // Remove listener to avoid leaking UI references
         connectionMonitor.removeListener(uiConnectionListener);
     }
@@ -194,6 +260,8 @@ public class MainController {
     }
 
     private void startStreamingFor(Wkn wkn) {
+        this.activeWkn = wkn;
+
         // Start stream to feed the chart controller listener
         txtOutput.setText("Starte Stream für WKN " + wkn.getValue() + "...\n");
 
