@@ -34,6 +34,21 @@ public class SimpleOhlcv implements IOhlcv {
         }
     }
 
+    public IOhlcvItem getLastOrNull() {
+        if (items.isEmpty()) {
+            return null;
+        }
+        return items.get(items.size() - 1);
+    }
+
+    public void replaceLast(IOhlcvItem item) {
+        if (items.isEmpty()) {
+            items.add(item);
+            return;
+        }
+        items.set(items.size() - 1, item);
+    }
+
     @Override
     public IOhlcvItem getOhlcvItem(int index) {
         return items.get(index);
