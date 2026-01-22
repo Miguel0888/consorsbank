@@ -18,6 +18,12 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import consorsbank.services.connection.ActiveTraderConnectionListener;
+import consorsbank.services.connection.ActiveTraderConnectionMonitor;
+import consorsbank.services.connection.ActiveTraderConnectionState;
+import consorsbank.services.connection.ActiveTraderConnectionStatus;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -53,10 +59,48 @@ public class MainController {
     private SecureMarketDataConfig currentConfig;
 
     @FXML
+    private Label lblConnectionStatus;
+
+    @FXML
+    private ProgressIndicator piConnection;
+
+    @Autowired
+    private ActiveTraderConnectionMonitor connectionMonitor;
+
+    private final ActiveTraderConnectionListener uiListener = new ActiveTraderConnectionListener() {
+        @Override
+        public void onStatusChanged(final ActiveTraderConnectionStatus status) {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    renderConnectionStatus(status);
+                }
+            });
+        }
+    };
+
+    @FXML
     public void initialize() {
         initializeWknDropdown();
         initializeToolbar();
         initializeActions();
+        initializeConnectionStatus();
+    }
+
+    private void initializeConnectionStatus() {
+        lblConnectionStatus.setText("Starte...");
+        piConnection.setVisible(false);
+        connectionMonitor.addListener(uiListener);
+    }
+
+    private void renderConnectionStatus(ActiveTraderConnectionStatus status) {
+        lblConnectionStatus.setText(status.getMessage());
+
+        boolean connecting = status.getState() == ActiveTraderConnectionState.CONNECTING;
+        piConnection.setVisible(connecting);
+
+        // Optional: simple visual hint via style (no colors forced here)
+        lblConnectionStatus.setStyle(connecting ? "-fx-font-style: italic;" : "");
     }
 
     @FXML

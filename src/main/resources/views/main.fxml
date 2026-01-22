@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="consorsbank.controllers.MainController">
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17.0.12" fx:controller="consorsbank.controllers.MainController">
 
     <top>
         <VBox>
             <MenuBar>
                 <Menu text="Datei">
-                    <MenuItem text="Beenden" onAction="#onExit" />
+                    <MenuItem onAction="#onExit" text="Beenden" />
                 </Menu>
                 <Menu text="Einstellungen">
-                    <MenuItem text="Trading-API..." onAction="#openTradingApiSettings" />
+                    <MenuItem onAction="#openTradingApiSettings" text="Trading-API..." />
                 </Menu>
             </MenuBar>
 
-            <Label text="ConsorsBank Dashboard" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+            <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="ConsorsBank Dashboard" />
             <ToolBar fx:id="toolbar">
                 <ComboBox fx:id="wknDropdown" promptText="Select WKN" />
                 <Button fx:id="btnLoadMarketData" text="Load Market Data">
                     <graphic>
-                        <Label text="📈" style="-fx-font-size: 14px;" />
+                        <Label style="-fx-font-size: 14px;" text="📈" />
                     </graphic>
                 </Button>
             </ToolBar>
@@ -29,17 +29,25 @@
     </top>
 
     <center>
-        <SplitPane orientation="HORIZONTAL">
+        <SplitPane dividerPositions="0.5" orientation="HORIZONTAL">
             <StackPane fx:id="chartContainer" prefWidth="800" />
-            <VBox spacing="5.0" prefWidth="300" style="-fx-padding: 10;">
-                <Label text="Chat" style="-fx-font-size: 14px; -fx-font-weight: bold;" />
-                <TextArea fx:id="chatArea" wrapText="true" prefHeight="600" />
+            <VBox prefWidth="300" spacing="5.0" style="-fx-padding: 10;">
+                <Label style="-fx-font-size: 14px; -fx-font-weight: bold;" text="Chat" />
+                <TextArea fx:id="chatArea" prefHeight="600" wrapText="true" />
             </VBox>
         </SplitPane>
     </center>
 
     <bottom>
-        <TextArea fx:id="txtOutput" prefRowCount="5" wrapText="true" />
+        <VBox spacing="6.0" style="-fx-padding: 8;">
+
+            <TextArea fx:id="txtOutput" prefRowCount="5" wrapText="true" />
+            <HBox alignment="CENTER_LEFT" spacing="8.0">
+                <Label style="-fx-font-weight: bold;" text="ActiveTrader:" />
+                <Label fx:id="lblConnectionStatus" text="Unbekannt" />
+                <ProgressIndicator fx:id="piConnection" prefHeight="14" prefWidth="14" visible="false" />
+            </HBox>
+        </VBox>
     </bottom>
 
 </BorderPane>
