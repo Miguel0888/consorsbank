@@ -24,6 +24,7 @@ import javafx.scene.layout.StackPane;
 import org.springframework.stereotype.Controller;
 
 import javax.annotation.PreDestroy;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -34,6 +35,13 @@ import java.util.Date;
 public class ChartController implements WknSelectionAware {
 
     private static final int MAX_POINTS = 600;
+
+    // Keep the first valid candle visible without manual zooming
+    private static final long INITIAL_WINDOW_PAST_SECONDS = 6 * 60 * 60;   // 6 hours back
+    private static final long INITIAL_WINDOW_FUTURE_SECONDS = 10 * 60;     // 10 minutes forward
+
+    // Reject timestamps that look like epoch/placeholder
+    private static final long MIN_VALID_EPOCH_MILLIS = 946684800000L; // 2000-01-01T00:00:00Z
 
     @FXML
     private ToolBar toolbar;
@@ -52,6 +60,9 @@ public class ChartController implements WknSelectionAware {
     private final SimpleOhlcv ohlcv = new SimpleOhlcv();
     private OhlcvDataSet dataSet;
     private XYChart chart;
+
+    private DefaultNumericAxis xAxis;
+    private DefaultNumericAxis yAxis;
 
     private volatile Wkn selectedWkn;
 
@@ -110,6 +121,7 @@ public class ChartController implements WknSelectionAware {
         }
 
         this.chart = createCandlestickChart();
+
         this.dataSet = new OhlcvDataSet("Live Market Data");
         this.dataSet.setData(ohlcv);
 
@@ -126,7 +138,7 @@ public class ChartController implements WknSelectionAware {
     }
 
     private XYChart createCandlestickChart() {
-        DefaultNumericAxis xAxis = new DefaultNumericAxis("Time");
+        this.xAxis = new DefaultNumericAxis("Time");
         xAxis.setAxisLabelFormatter(new AxisLabelFormatter() {
 
             private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM");
@@ -181,7 +193,8 @@ public class ChartController implements WknSelectionAware {
             }
         });
 
-        DefaultNumericAxis yAxis = new DefaultNumericAxis("Price");
+        this.yAxis = new DefaultNumericAxis("Price");
+
         XYChart c = new XYChart(xAxis, yAxis);
         c.setTitle("Live Candlestick");
         return c;
@@ -193,36 +206,28 @@ public class ChartController implements WknSelectionAware {
         }
 
         double last = stock.getLastPrice();
-
-        // Ignore invalid ticks (NaN, Infinity, 0.0, negative)
-        if (isInvalidNumber(last) || last <= 0.0) {
+        if (!isValidPrice(last)) {
             return;
         }
 
-        Date ts = stock.getTimeStamp();
-        if (ts == null) {
-            ts = new Date();
+        Date ts = safeTimestamp(stock);
+        if (!isValidTimestamp(ts)) {
+            return;
         }
 
-        double open = safePrice(stock.getOpenPrice(), last);
-        double high = safePrice(stock.getHighPrice(), last);
-        double low = safePrice(stock.getLowPrice(), last);
+        double open = normalizePrice(stock.getOpenPrice(), last);
+        double high = normalizePrice(stock.getHighPrice(), last);
+        double low = normalizePrice(stock.getLowPrice(), last);
         double close = last;
 
-        // Normalize high/low
         if (high < low) {
             double tmp = high;
             high = low;
             low = tmp;
         }
 
-        // Make first candle visible: seed a previous point so renderer has spacing
-        if (ohlcv.size() == 0) {
-            Date seedTs = new Date(ts.getTime() - 60_000L); // 1 minute earlier
-            ohlcv.add(new SimpleOhlcvItem(seedTs, open, high, low, close, 0.0));
-        }
-
-        ohlcv.add(new SimpleOhlcvItem(ts, open, high, low, close, 0.0));
+        SimpleOhlcvItem item = new SimpleOhlcvItem(ts, open, high, low, close, 0.0);
+        ohlcv.add(item);
 
         if (ohlcv.size() > MAX_POINTS) {
             ohlcv.removeOldest(ohlcv.size() - MAX_POINTS);
@@ -231,17 +236,94 @@ public class ChartController implements WknSelectionAware {
         if (dataSet != null) {
             dataSet.setData(ohlcv);
         }
+
+        if (ohlcv.size() == 1) {
+            ensureInitialWindowVisible(ts);
+        }
     }
 
-    private double safePrice(double candidate, double fallback) {
-        if (isInvalidNumber(candidate) || candidate <= 0.0) {
+    private Date safeTimestamp(Stock stock) {
+        try {
+            return stock.getTimeStamp();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private boolean isValidTimestamp(Date ts) {
+        return ts != null && ts.getTime() >= MIN_VALID_EPOCH_MILLIS;
+    }
+
+    private boolean isValidPrice(double value) {
+        return Double.isFinite(value) && value > 0.0;
+    }
+
+    private double normalizePrice(double candidate, double fallback) {
+        if (!Double.isFinite(candidate) || candidate <= 0.0) {
             return fallback;
         }
         return candidate;
     }
 
-    private boolean isInvalidNumber(double value) {
-        return Double.isNaN(value) || Double.isInfinite(value);
+    private void ensureInitialWindowVisible(Date center) {
+        // ChartFX axis API differs a bit across versions; use reflection to avoid compile-time breakage.
+        long centerSeconds = center.getTime() / 1000L;
+        double lower = (double) (centerSeconds - INITIAL_WINDOW_PAST_SECONDS);
+        double upper = (double) (centerSeconds + INITIAL_WINDOW_FUTURE_SECONDS);
+
+        AxisWindow.tryApply(xAxis, lower, upper);
     }
 
+    private static final class AxisWindow {
+
+        private AxisWindow() {
+            // Utility class
+        }
+
+        static void tryApply(Object axis, double lower, double upper) {
+            if (axis == null) {
+                return;
+            }
+
+            // Try common patterns: setAutoRanging(false) + setLowerBound/setUpperBound
+            invokeIfExists(axis, "setAutoRanging", new Class<?>[]{boolean.class}, new Object[]{false});
+            boolean applied = invokeIfExists(axis, "setLowerBound", new Class<?>[]{double.class}, new Object[]{lower})
+                    && invokeIfExists(axis, "setUpperBound", new Class<?>[]{double.class}, new Object[]{upper});
+
+            if (!applied) {
+                // Alternative names occasionally used by non-JavaFX axes
+                invokeIfExists(axis, "setMin", new Class<?>[]{double.class}, new Object[]{lower});
+                invokeIfExists(axis, "setMax", new Class<?>[]{double.class}, new Object[]{upper});
+            }
+
+            // Force refresh workaround: slightly nudge bounds and restore (seen in ChartFX discussions)
+            Double currentLower = (Double) invokeIfExistsWithReturn(axis, "getLowerBound");
+            Double currentUpper = (Double) invokeIfExistsWithReturn(axis, "getUpperBound");
+            if (currentLower != null && currentUpper != null) {
+                invokeIfExists(axis, "setLowerBound", new Class<?>[]{double.class}, new Object[]{currentLower - 1});
+                invokeIfExists(axis, "setUpperBound", new Class<?>[]{double.class}, new Object[]{currentUpper + 1});
+                invokeIfExists(axis, "setLowerBound", new Class<?>[]{double.class}, new Object[]{currentLower});
+                invokeIfExists(axis, "setUpperBound", new Class<?>[]{double.class}, new Object[]{currentUpper});
+            }
+        }
+
+        private static boolean invokeIfExists(Object target, String method, Class<?>[] paramTypes, Object[] args) {
+            try {
+                Method m = target.getClass().getMethod(method, paramTypes);
+                m.invoke(target, args);
+                return true;
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        private static Object invokeIfExistsWithReturn(Object target, String method) {
+            try {
+                Method m = target.getClass().getMethod(method);
+                return m.invoke(target);
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+    }
 }
