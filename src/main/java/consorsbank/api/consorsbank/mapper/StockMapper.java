@@ -1,34 +1,31 @@
 package consorsbank.api.consorsbank.mapper;
 
+import com.consorsbank.module.tapi.grpc.common.Date;
 import com.consorsbank.module.tapi.grpc.security.SecurityMarketDataReply;
 import consorsbank.model.Stock;
 import consorsbank.model.Wkn;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
-import com.consorsbank.module.tapi.grpc.common.Date;
-import org.springframework.stereotype.Component;
-
 @Component
 public class StockMapper {
 
     /**
-     * Maps a `SecurityMarketDataReply` from the gRPC API to a domain `Stock` object.
+     * Map a `SecurityMarketDataReply` from the gRPC API to a domain `Stock` object.
      *
-     * @param reply The gRPC API reply containing market data.
-     * @return A domain `Stock` object populated with the mapped data.
+     * @param reply gRPC API reply containing market data
+     * @return mapped domain `Stock`
      */
     public Stock mapToDomain(SecurityMarketDataReply reply) {
-        // WKN and stock exchange
         Wkn wkn = new Wkn(reply.getSecurityWithStockexchange().getSecurityCode().getCode());
         String stockExchange = reply.getSecurityWithStockexchange().getStockExchange().getId();
 
-        // Initialize domain model
         Stock stock = new Stock(wkn, stockExchange);
 
-        // Map numeric fields
+        // Numeric fields
         stock.setLastPrice(reply.getLastPrice());
         stock.setHighPrice(reply.getHighPrice());
         stock.setLowPrice(reply.getLowPrice());
@@ -39,6 +36,7 @@ public class StockMapper {
         stock.setTodayVolume(reply.getTodayVolume());
         stock.setRelativeDifference(reply.getRelativeDiff());
         stock.setAbsoluteDifference(reply.getAbsDiff());
+
         stock.setWeekHighPrice(reply.getWeekHighPrice());
         stock.setWeekLowPrice(reply.getWeekLowPrice());
         stock.setMonthHighPrice(reply.getMonthHighPrice());
@@ -46,7 +44,7 @@ public class StockMapper {
         stock.setYearHighPrice(reply.getYearHighPrice());
         stock.setYearLowPrice(reply.getYearLowPrice());
 
-        // Map timestamp fields to LocalDateTime
+        // Timestamp fields (seconds since epoch)
         if (reply.hasLastDateTime()) {
             stock.setLastDateTime(toLocalDateTime(reply.getLastDateTime().getSeconds()));
         }
@@ -57,30 +55,50 @@ public class StockMapper {
             stock.setBidTime(toLocalDateTime(reply.getBidTime().getSeconds()));
         }
 
-        // Map date fields to LocalDate
+        // Date fields (guard against invalid default values like month==0)
         if (reply.hasPreviousDate()) {
-            stock.setPreviousDate(toLocalDate(reply.getPreviousDate()));
+            LocalDate value = toLocalDateOrNull(reply.getPreviousDate());
+            if (value != null) {
+                stock.setPreviousDate(value);
+            }
         }
         if (reply.hasDateWeekHigh()) {
-            stock.setDateWeekHigh(toLocalDate(reply.getDateWeekHigh()));
+            LocalDate value = toLocalDateOrNull(reply.getDateWeekHigh());
+            if (value != null) {
+                stock.setDateWeekHigh(value);
+            }
         }
         if (reply.hasDateWeekLow()) {
-            stock.setDateWeekLow(toLocalDate(reply.getDateWeekLow()));
+            LocalDate value = toLocalDateOrNull(reply.getDateWeekLow());
+            if (value != null) {
+                stock.setDateWeekLow(value);
+            }
         }
         if (reply.hasDateMonthHigh()) {
-            stock.setDateMonthHigh(toLocalDate(reply.getDateMonthHigh()));
+            LocalDate value = toLocalDateOrNull(reply.getDateMonthHigh());
+            if (value != null) {
+                stock.setDateMonthHigh(value);
+            }
         }
         if (reply.hasDateMonthLow()) {
-            stock.setDateMonthLow(toLocalDate(reply.getDateMonthLow()));
+            LocalDate value = toLocalDateOrNull(reply.getDateMonthLow());
+            if (value != null) {
+                stock.setDateMonthLow(value);
+            }
         }
         if (reply.hasDateYearHigh()) {
-            stock.setDateYearHigh(toLocalDate(reply.getDateYearHigh()));
+            LocalDate value = toLocalDateOrNull(reply.getDateYearHigh());
+            if (value != null) {
+                stock.setDateYearHigh(value);
+            }
         }
         if (reply.hasDateYearLow()) {
-            stock.setDateYearLow(toLocalDate(reply.getDateYearLow()));
+            LocalDate value = toLocalDateOrNull(reply.getDateYearLow());
+            if (value != null) {
+                stock.setDateYearLow(value);
+            }
         }
 
-        // Optional additional fields
         stock.setAddendum(reply.getLastAddendum());
         stock.setTradingPhase(reply.getTradingPhase().name());
 
@@ -88,22 +106,39 @@ public class StockMapper {
     }
 
     /**
-     * Converts a Protobuf Timestamp (seconds since epoch) to LocalDateTime.
+     * Convert protobuf Timestamp seconds since epoch to LocalDateTime.
      *
-     * @param seconds The seconds since the epoch (from Protobuf Timestamp).
-     * @return A LocalDateTime object.
+     * @param seconds seconds since epoch
+     * @return local date time
      */
     private LocalDateTime toLocalDateTime(long seconds) {
         return LocalDateTime.ofEpochSecond(seconds, 0, ZoneOffset.UTC);
     }
 
     /**
-     * Converts a Protobuf Date to LocalDate.
+     * Convert protobuf Date to LocalDate.
+     * Return null if the date is not fully initialized (e.g. month==0).
      *
-     * @param date The Protobuf Date object.
-     * @return A LocalDate object.
+     * @param date protobuf date
+     * @return local date or null
      */
-    private LocalDate toLocalDate(Date date) {
-        return LocalDate.of(date.getYear(), date.getMonth(), date.getDay());
+    private LocalDate toLocalDateOrNull(Date date) {
+        if (date == null) {
+            return null;
+        }
+
+        int year = date.getYear();
+        int month = date.getMonth();
+        int day = date.getDay();
+
+        if (year <= 0 || month < 1 || month > 12 || day < 1 || day > 31) {
+            return null;
+        }
+
+        try {
+            return LocalDate.of(year, month, day);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 }
