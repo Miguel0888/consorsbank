@@ -1,5 +1,6 @@
 package consorsbank.config;
 
+import consorsbank.config.persistence.SecureMarketDataConfigStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -7,16 +8,19 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Configuration
 public class SecureMarketDataServiceConfig {
 
     private final ResourceLoader resourceLoader;
+    private final SecureMarketDataConfigStore configStore;
 
-    public SecureMarketDataServiceConfig(ResourceLoader resourceLoader) {
+    public SecureMarketDataServiceConfig(ResourceLoader resourceLoader, SecureMarketDataConfigStore configStore) {
         this.resourceLoader = resourceLoader;
+        this.configStore = configStore;
     }
 
     @Value("${secure-market-data.host}")
@@ -28,33 +32,31 @@ public class SecureMarketDataServiceConfig {
     @Value("${secure-market-data.secret}")
     private String secret;
 
-    @Value("${secure-market-data.cert-content:}") // Optional, leerer String als Default
+    @Value("${secure-market-data.cert-content:}")
     private String certContent;
 
-    @Value("${secure-market-data.cert-file:roots.pem}") // Default auf roots.pem in classpath
+    @Value("${secure-market-data.cert-file:roots.pem}")
     private String certFile;
 
     @Bean
     public SecureMarketDataConfig secureMarketDataConfig() throws IOException {
-        String effectiveCertContent;
+        SecureMarketDataConfig storedConfig = configStore.loadOrNull();
+        if (storedConfig != null) {
+            return storedConfig;
+        }
 
+        String effectiveCertContent;
         if (certContent == null || certContent.isEmpty()) {
-            // Zertifikat aus der Datei laden
             Resource resource = resourceLoader.getResource("classpath:" + certFile);
             if (!resource.exists()) {
                 throw new IllegalArgumentException("Zertifikatsdatei nicht gefunden: " + certFile);
             }
-            effectiveCertContent = Files.readString(Path.of(resource.getURI()));
+            byte[] bytes = Files.readAllBytes(Paths.get(resource.getURI()));
+            effectiveCertContent = new String(bytes, StandardCharsets.UTF_8);
         } else {
-            // Zertifikat direkt aus der YAML-Datei verwenden
             effectiveCertContent = certContent;
         }
 
-        // Ausgabe des Zertifikats zur Überprüfung
-        System.out.println("Inhalt des Zertifikats:");
-        System.out.println(effectiveCertContent);
-
-        // Rückgabe der Konfiguration
         return new SecureMarketDataConfig(host, port, effectiveCertContent, secret);
     }
 }

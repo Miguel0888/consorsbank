@@ -1,11 +1,15 @@
 package consorsbank.controllers;
 
+import consorsbank.config.SecureMarketDataConfig;
+import consorsbank.config.persistence.SecureMarketDataConfigStore;
+import consorsbank.controllers.dialogs.TradingApiSettingsDialog;
 import consorsbank.model.Stock;
 import consorsbank.model.Wkn;
 import consorsbank.services.SecureMarketDataService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
@@ -29,9 +33,6 @@ public class MainController {
     private Button btnLoadMarketData;
 
     @FXML
-    private Button loadChartButton;
-
-    @FXML
     private ToolBar toolbar;
 
     @FXML
@@ -40,25 +41,59 @@ public class MainController {
     @FXML
     private TextArea txtOutput;
 
+    private Button loadChartButton;
+
     @Autowired
     private SecureMarketDataService marketDataService;
 
+    @Autowired
+    private SecureMarketDataConfigStore configStore;
+
+    @Autowired
+    private SecureMarketDataConfig currentConfig;
+
     @FXML
     public void initialize() {
-        // DAX-Werte in das Dropdown hinzufügen
+        initializeWknDropdown();
+        initializeToolbar();
+        initializeActions();
+    }
+
+    @FXML
+    public void openTradingApiSettings() {
+        SecureMarketDataConfig initial = loadInitialConfigForDialog();
+
+        TradingApiSettingsDialog dialog = new TradingApiSettingsDialog(txtOutput.getScene().getWindow(), initial);
+        dialog.showAndWait().ifPresent(config -> {
+            configStore.save(config);
+            showInfo(
+                    "Einstellungen gespeichert",
+                    "Die Trading-API Einstellungen wurden gespeichert.\nBitte starte die Anwendung neu, damit sie wirksam werden."
+            );
+        });
+    }
+
+    @FXML
+    public void onExit() {
+        Platform.exit();
+        System.exit(0);
+    }
+
+    private void initializeWknDropdown() {
         List<String> daxWkns = Arrays.asList("710000", "846900", "578580", "823212", "514000");
         wknDropdown.getItems().addAll(daxWkns);
-
-        // Toolbar-Button erstellen
-        loadChartButton = new Button("📊 Load Chart");
-        loadChartButton.setStyle("-fx-font-size: 14px;"); // Schriftgröße anpassen
-        loadChartButton.setOnAction(event -> loadChart());
-        // Standardmäßig keine Auswahl
         wknDropdown.setValue(null);
+    }
 
-        // Button zur Toolbar hinzufügen
+    private void initializeToolbar() {
+        loadChartButton = new Button("📊 Load Chart");
+        loadChartButton.setStyle("-fx-font-size: 14px;");
+        loadChartButton.setOnAction(event -> loadChart());
+
         toolbar.getItems().add(loadChartButton);
+    }
 
+    private void initializeActions() {
         btnLoadMarketData.setOnAction(event -> loadMarketData());
     }
 
@@ -68,7 +103,7 @@ public class MainController {
             Pane chartPane = chartLoader.load();
 
             chartContainer.getChildren().clear();
-            chartContainer.getChildren().add(chartPane); // StackPane passt sich automatisch an
+            chartContainer.getChildren().add(chartPane);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -90,22 +125,38 @@ public class MainController {
 
         marketDataService.streamMarketData(wkn, stockExchangeId, currency);
 
-        // Periodisch Repository abfragen und aktualisieren
-        new Thread(() -> {
-            try {
-                while (true) {
-                    Stock stock = marketDataService.getStock(wkn);
+        new Thread(() -> pollOnceAndRenderStock(wkn)).start();
+    }
 
-                    if (stock != null) {
-                        Platform.runLater(() -> txtOutput.setText(stock.toString()));
-                        break;
-                    }
-
-                    Thread.sleep(500); // Warte kurz, bevor erneut geprüft wird
+    private void pollOnceAndRenderStock(Wkn wkn) {
+        try {
+            while (true) {
+                Stock stock = marketDataService.getStock(wkn);
+                if (stock != null) {
+                    Platform.runLater(() -> txtOutput.setText(stock.toString()));
+                    break;
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                Thread.sleep(500);
             }
-        }).start();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private SecureMarketDataConfig loadInitialConfigForDialog() {
+        SecureMarketDataConfig stored = configStore.loadOrNull();
+        if (stored != null) {
+            return stored;
+        }
+        return currentConfig;
+    }
+
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.initOwner(txtOutput.getScene().getWindow());
+        alert.showAndWait();
     }
 }

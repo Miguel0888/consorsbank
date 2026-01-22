@@ -7,6 +7,15 @@
 
     <top>
         <VBox>
+            <MenuBar>
+                <Menu text="Datei">
+                    <MenuItem text="Beenden" onAction="#onExit" />
+                </Menu>
+                <Menu text="Einstellungen">
+                    <MenuItem text="Trading-API..." onAction="#openTradingApiSettings" />
+                </Menu>
+            </MenuBar>
+
             <Label text="ConsorsBank Dashboard" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
             <ToolBar fx:id="toolbar">
                 <ComboBox fx:id="wknDropdown" promptText="Select WKN" />

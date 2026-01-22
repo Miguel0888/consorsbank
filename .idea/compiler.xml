@@ -12,4 +12,11 @@
     </annotationProcessing>
     <bytecodeTargetLevel target="17" />
   </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="ConsorsBank" options="-parameters -parameters" />
+      <module name="ConsorsBank.main" options="-parameters -parameters" />
+      <module name="ConsorsBank.test" options="-parameters -parameters" />
+    </option>
+  </component>
 </project>
