@@ -1,52 +1,39 @@
-
 package consorsbank.controllers;
 
-import io.fair_acc.chartfx.axes.spi.format.DefaultTickUnitSupplier;
+import consorsbank.model.Stock;
+import consorsbank.model.Wkn;
+import consorsbank.services.MarketDataListener;
+import consorsbank.services.SecureMarketDataService;
 import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.AxisLabelFormatter;
 import io.fair_acc.chartfx.axes.TickUnitSupplier;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
+import io.fair_acc.chartfx.axes.spi.format.DefaultTickUnitSupplier;
 import io.fair_acc.chartfx.plugins.Zoomer;
-import io.fair_acc.chartfx.renderer.spi.GridRenderer;
-import io.fair_acc.chartfx.renderer.spi.ReducingLineRenderer;
 import io.fair_acc.chartfx.renderer.spi.financial.CandleStickRenderer;
 import io.fair_acc.chartfx.renderer.spi.financial.FinancialTheme;
-import io.fair_acc.dataset.spi.DefaultDataSet;
-import io.fair_acc.dataset.spi.fastutil.DoubleArrayList;
 import io.fair_acc.dataset.spi.financial.OhlcvDataSet;
-import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import io.fair_acc.dataset.spi.fastutil.DoubleArrayList;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.BaseBarSeries;
-import org.ta4j.core.indicators.SMAIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
-import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
-import util.TestingUtils;
-import consorsbank.model.chart.BarOhlcvAdapter;
+import org.springframework.stereotype.Controller;
 
+import javax.annotation.PreDestroy;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Date;
 
-import org.ta4j.core.indicators.pivotpoints.TimeLevel;
+@Controller
+public class ChartController implements WknSelectionAware {
 
-public class ChartController {
+    private static final int MAX_POINTS = 600;
 
     @FXML
     private ToolBar toolbar;
@@ -60,71 +47,124 @@ public class ChartController {
     @FXML
     private StackPane chartContainer;
 
-    private Node currentChart;
+    private final SecureMarketDataService marketDataService;
+
+    private final SimpleOhlcv ohlcv = new SimpleOhlcv();
+    private OhlcvDataSet dataSet;
+    private XYChart chart;
+
+    private volatile Wkn selectedWkn;
+
+    private final MarketDataListener listener = new MarketDataListener() {
+        @Override
+        public void onStockUpdated(Wkn wkn, Stock stock) {
+            if (selectedWkn == null || wkn == null || !selectedWkn.getValue().equals(wkn.getValue())) {
+                return;
+            }
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    appendTick(stock);
+                }
+            });
+        }
+    };
+
+    public ChartController(SecureMarketDataService marketDataService) {
+        this.marketDataService = marketDataService;
+    }
 
     public void initialize() {
-        // Werte setzen – das MUSS vor getValue() passieren!
         chartTypeDropdown.getItems().addAll("Candlestick");
         chartTypeDropdown.setValue("Candlestick");
 
         indicatorDropdown.getItems().addAll("SMA", "EMA", "RSI", "MACD", "BOLL", "PIVOT");
         indicatorDropdown.setValue("BOLL");
 
-        // Optional: Stil
-        chartTypeDropdown.setStyle("-fx-font-size: 13px;");
-        indicatorDropdown.setStyle("-fx-font-size: 13px;");
+        chartTypeDropdown.setOnAction(e -> rebuildChart());
+        indicatorDropdown.setOnAction(e -> rebuildChart());
 
-        // Events setzen
-        chartTypeDropdown.setOnAction(e -> updateChart());
-        indicatorDropdown.setOnAction(e -> updateChart());
+        marketDataService.addListener(listener);
 
-        // Starte mit initialer Anzeige
-        updateChart();
+        rebuildChart();
     }
 
+    @PreDestroy
+    public void onDestroy() {
+        marketDataService.removeListener(listener);
+    }
 
-    public void updateChart() {
+    @Override
+    public void setSelectedWkn(Wkn wkn) {
+        this.selectedWkn = wkn;
+        this.ohlcv.clear();
+        rebuildChart();
+    }
+
+    private void rebuildChart() {
         chartContainer.getChildren().clear();
 
         String chartType = chartTypeDropdown.getValue();
-        String indicator = indicatorDropdown.getValue();
-
-        if ("Candlestick".equals(chartType)) {
-            currentChart = createCandlestickChartWithStocks(indicator);
+        if (!"Candlestick".equals(chartType)) {
+            return;
         }
 
-        if (currentChart != null) {
-            chartContainer.getChildren().add(currentChart);
-        }
+        this.chart = createCandlestickChart();
+        this.dataSet = new OhlcvDataSet("Live Market Data");
+        this.dataSet.setData(ohlcv);
+
+        chart.getRenderers().setAll(new CandleStickRenderer());
+        chart.getDatasets().setAll(dataSet);
+
+        chart.getPlugins().add(new Zoomer());
+        chart.setStyle(FinancialTheme.Default.name());
+
+        chart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+
+        Node node = chart;
+        chartContainer.getChildren().add(node);
     }
 
-    private Node createCandlestickChartWithStocks(String indicatorName){
+    private XYChart createCandlestickChart() {
         DefaultNumericAxis xAxis = new DefaultNumericAxis("Time");
         xAxis.setAxisLabelFormatter(new AxisLabelFormatter() {
+
             private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM");
 
-            @Override public Number fromString(String s) { return null; }
+            @Override
+            public Number fromString(String s) {
+                return null;
+            }
 
-            @Override public TickUnitSupplier getTickUnitSupplier() {
+            @Override
+            public TickUnitSupplier getTickUnitSupplier() {
                 return new DefaultTickUnitSupplier();
             }
 
-            @Override public void setTickUnitSupplier(TickUnitSupplier tickUnitSupplier) {}
-
-            @Override public ObjectProperty<TickUnitSupplier> tickUnitSupplierProperty() {
-                return new SimpleObjectProperty<>();
+            @Override
+            public void setTickUnitSupplier(TickUnitSupplier tickUnitSupplier) {
+                // No-op
             }
 
-            @Override public String toString(Number value) {
-                long seconds = value.longValue(); // <-- ACHTUNG: Sekundengenau!
+            @Override
+            public javafx.beans.property.ObjectProperty<TickUnitSupplier> tickUnitSupplierProperty() {
+                return new javafx.beans.property.SimpleObjectProperty<TickUnitSupplier>();
+            }
+
+            @Override
+            public String toString(Number value) {
+                long seconds = value.longValue();
                 LocalDateTime time = Instant.ofEpochSecond(seconds)
                         .atZone(ZoneId.systemDefault())
                         .toLocalDateTime();
                 return formatter.format(time);
             }
 
-            @Override public void updateFormatter(DoubleArrayList ticks, double scale) {
-                if (ticks.isEmpty()) return;
+            @Override
+            public void updateFormatter(DoubleArrayList ticks, double scale) {
+                if (ticks.isEmpty()) {
+                    return;
+                }
                 double min = ticks.getDouble(0);
                 double max = ticks.getDouble(ticks.size() - 1);
                 double rangeInHours = (max - min) / 3600.0;
@@ -142,181 +182,56 @@ public class ChartController {
         });
 
         DefaultNumericAxis yAxis = new DefaultNumericAxis("Price");
-        XYChart chart = new XYChart(xAxis, yAxis);
-        chart.setTitle("Candlestick Chart mit Stock-Daten");
-
-        List<BaseBar> bars = TestingUtils.generateTestBars(30);
-        List<IOhlcvItem> items = bars.stream()
-                .map(BarOhlcvAdapter::new)
-                .map(item -> (IOhlcvItem) item)
-                .collect(Collectors.toList());
-
-        SimpleOhlcv ohlcv = new SimpleOhlcv();
-        ohlcv.addAll(items);
-
-        OhlcvDataSet dataSet = new OhlcvDataSet("Stock Dataset");
-        dataSet.setData(ohlcv);
-
-        chart.getRenderers().setAll(new CandleStickRenderer());
-        chart.getDatasets().setAll(dataSet);
-
-        // 🔥 SMA hinzufügen for Testing
-//        addSMAOverlay(chart, bars, 14, "SMA 14");
-//        addDebugGrid(chart);
-        addIndicatorOverlay(chart, bars, indicatorName);
-
-        chart.getPlugins().add(new Zoomer());
-        chart.setStyle(FinancialTheme.Default.name());
-
-        chart.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
-        return chart;
+        XYChart c = new XYChart(xAxis, yAxis);
+        c.setTitle("Live Candlestick");
+        return c;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    private void addSMAOverlay(XYChart chart, List<BaseBar> bars, int period, String name) {
-        // TA4J-Serie aufbauen
-        BarSeries series = new BaseBarSeries("SMA Series");
-        bars.forEach(series::addBar);
-
-        // SMA berechnen
-        SMAIndicator sma = new SMAIndicator(new ClosePriceIndicator(series), period);
-
-        // Zeit und SMA-Werte extrahieren
-        DoubleArrayList x = new DoubleArrayList();
-        DoubleArrayList y = new DoubleArrayList();
-
-        for (int i = 0; i < series.getBarCount(); i++) {
-            long seconds = series.getBar(i).getEndTime().toEpochSecond(); // ACHTUNG: in Sekunden!
-            x.add(seconds);
-            y.add(sma.getValue(i).doubleValue());
+    private void appendTick(Stock stock) {
+        if (stock == null) {
+            return;
         }
 
-        // In Arrays umwandeln
-        double[] xArr = Arrays.copyOf(x.elements(), x.size());
-        double[] yArr = Arrays.copyOf(y.elements(), y.size());
-
-        // Dataset anlegen
-        DefaultDataSet dataSet = new DefaultDataSet(name);
-        dataSet.set(xArr, yArr);
-
-        // Renderer vorbereiten
-        ReducingLineRenderer lineRenderer = new ReducingLineRenderer();
-        lineRenderer.setMaxPoints(1000);
-        lineRenderer.setStyle("-fx-stroke: blue; -fx-stroke-width: 2;"); // Auffälliges Blau
-
-        // Dataset direkt zuweisen (‼️)
-        lineRenderer.getDatasets().add(dataSet);
-
-        // Zum Chart hinzufügen
-        chart.getRenderers().add(lineRenderer);
-    }
-
-
-    private void addIndicatorOverlay(XYChart chart, List<BaseBar> bars, String indicatorName) {
-        BarSeries series = new BaseBarSeries("TA4J Series");
-        bars.forEach(series::addBar);
-
-        int period = 14;
-        double bollK = 2.0;
-
-        var closePrice = new ClosePriceIndicator(series);
-
-        // Bollinger optional vorbereiten
-        BollingerBandFacade boll = null;
-        if ("BOLL".equals(indicatorName)) {
-            boll = new BollingerBandFacade(series, period, bollK);
+        double last = stock.getLastPrice();
+        if (last <= 0.0) {
+            return;
         }
 
-        // Pivot optional vorbereiten
-        var pivot = "PIVOT".equals(indicatorName)
-                ? new org.ta4j.core.indicators.pivotpoints.PivotPointIndicator(series, TimeLevel.DAY)
-                : null;
-
-        DoubleArrayList x = new DoubleArrayList();
-        DoubleArrayList y1 = new DoubleArrayList(); // z. B. SMA, BOLL middle
-        DoubleArrayList y2 = new DoubleArrayList(); // BOLL upper
-        DoubleArrayList y3 = new DoubleArrayList(); // BOLL lower
-
-        for (int i = 0; i < series.getBarCount(); i++) {
-            long seconds = series.getBar(i).getEndTime().toEpochSecond();
-            x.add(seconds);
-
-            switch (indicatorName) {
-                case "SMA" -> y1.add(new SMAIndicator(closePrice, period).getValue(i).doubleValue());
-                case "EMA" -> y1.add(new org.ta4j.core.indicators.EMAIndicator(closePrice, period).getValue(i).doubleValue());
-                case "RSI" -> y1.add(new org.ta4j.core.indicators.RSIIndicator(closePrice, period).getValue(i).doubleValue());
-                case "MACD" -> y1.add(new org.ta4j.core.indicators.MACDIndicator(closePrice, 12, 26).getValue(i).doubleValue());
-                case "PIVOT" -> y1.add(pivot.getValue(i).doubleValue());
-                case "BOLL" -> {
-                    y1.add(boll.middle().getValue(i).doubleValue());
-                    y2.add(boll.upper().getValue(i).doubleValue());
-                    y3.add(boll.lower().getValue(i).doubleValue());
-                }
-                default -> y1.add(0.0);
-            }
+        Date ts = stock.getTimeStamp();
+        if (ts == null) {
+            ts = new Date();
         }
 
-        double[] xArr = toArray(x);
+        double open = safePrice(stock.getOpenPrice(), last);
+        double high = safePrice(stock.getHighPrice(), last);
+        double low = safePrice(stock.getLowPrice(), last);
+        double close = last;
 
-        // Standardlinie zeichnen
-        drawOverlay(chart, xArr, toArray(y1), indicatorName + " - main", "-fx-stroke: green; -fx-stroke-width: 2;");
+        // If OHLC is not provided by stream, use last price as candle
+        if (open <= 0.0) open = last;
+        if (high <= 0.0) high = last;
+        if (low <= 0.0) low = last;
 
-        // BOLL: Extra-Linien
-        if ("BOLL".equals(indicatorName)) {
-            drawOverlay(chart, xArr, toArray(y2), "BOLL - upper", "-fx-stroke: orange; -fx-stroke-dash-array: 6 4;");
-            drawOverlay(chart, xArr, toArray(y3), "BOLL - lower", "-fx-stroke: orange; -fx-stroke-dash-array: 6 4;");
+        // Normalize high/low
+        if (high < low) {
+            double tmp = high;
+            high = low;
+            low = tmp;
+        }
+
+        SimpleOhlcvItem item = new SimpleOhlcvItem(ts, open, high, low, close, 0.0);
+        ohlcv.add(item);
+
+        if (ohlcv.size() > MAX_POINTS) {
+            ohlcv.removeOldest(ohlcv.size() - MAX_POINTS);
+        }
+
+        if (dataSet != null) {
+            dataSet.setData(ohlcv);
         }
     }
 
-
-    private double[] toArray(DoubleArrayList list) {
-        return Arrays.copyOf(list.elements(), list.size());
+    private double safePrice(double candidate, double fallback) {
+        return candidate > 0.0 ? candidate : fallback;
     }
-
-
-    private void addLineToChart(XYChart chart, DoubleArrayList x, DoubleArrayList y, String name, String color) {
-        double[] xArr = Arrays.copyOf(x.elements(), x.size());
-        double[] yArr = Arrays.copyOf(y.elements(), y.size());
-
-        DefaultDataSet dataSet = new DefaultDataSet(name);
-        dataSet.set(xArr, yArr);
-
-        ReducingLineRenderer renderer = new ReducingLineRenderer();
-        renderer.setMaxPoints(1000);
-        renderer.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2;");
-        renderer.getDatasets().add(dataSet);
-
-        chart.getRenderers().add(renderer);
-    }
-
-
-    private void drawOverlay(XYChart chart, double[] x, double[] y, String name, String style) {
-        DefaultDataSet dataSet = new DefaultDataSet(name);
-        dataSet.set(x, y);
-
-        ReducingLineRenderer renderer = new ReducingLineRenderer();
-        renderer.setMaxPoints(1000);
-        renderer.setStyle(style);
-        renderer.getDatasets().add(dataSet);
-
-        chart.getRenderers().add(renderer);
-    }
-
-
-    private void addDebugGrid(XYChart chart) {
-        GridRenderer grid = new GridRenderer(chart);
-        grid.setDrawOnTop(true); // damit es sichtbar bleibt, egal was passiert
-        chart.getRenderers().add(grid);
-    }
-
-
-
-
-
-
-
-
-
-
 }

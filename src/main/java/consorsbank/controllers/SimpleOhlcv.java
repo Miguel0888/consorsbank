@@ -1,8 +1,6 @@
-
 package consorsbank.controllers;
 
 import io.fair_acc.dataset.spi.financial.api.attrs.AttributeModel;
-import io.fair_acc.dataset.spi.financial.api.attrs.AttributeModelAware;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcv;
 import io.fair_acc.dataset.spi.financial.api.ohlcv.IOhlcvItem;
 
@@ -11,7 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SimpleOhlcv implements IOhlcv {
-    private final List<IOhlcvItem> items = new ArrayList<>();
+
+    private final List<IOhlcvItem> items = new ArrayList<IOhlcvItem>();
 
     public void add(IOhlcvItem item) {
         items.add(item);
@@ -19,6 +18,20 @@ public class SimpleOhlcv implements IOhlcv {
 
     public void addAll(List<IOhlcvItem> newItems) {
         items.addAll(newItems);
+    }
+
+    public void clear() {
+        items.clear();
+    }
+
+    public void removeOldest(int count) {
+        if (count <= 0) {
+            return;
+        }
+        int removeCount = Math.min(count, items.size());
+        for (int i = 0; i < removeCount; i++) {
+            items.remove(0);
+        }
     }
 
     @Override
