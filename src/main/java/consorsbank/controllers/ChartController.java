@@ -193,7 +193,9 @@ public class ChartController implements WknSelectionAware {
         }
 
         double last = stock.getLastPrice();
-        if (last <= 0.0) {
+
+        // Ignore invalid ticks (NaN, Infinity, 0.0, negative)
+        if (isInvalidNumber(last) || last <= 0.0) {
             return;
         }
 
@@ -207,11 +209,6 @@ public class ChartController implements WknSelectionAware {
         double low = safePrice(stock.getLowPrice(), last);
         double close = last;
 
-        // If OHLC is not provided by stream, use last price as candle
-        if (open <= 0.0) open = last;
-        if (high <= 0.0) high = last;
-        if (low <= 0.0) low = last;
-
         // Normalize high/low
         if (high < low) {
             double tmp = high;
@@ -219,8 +216,13 @@ public class ChartController implements WknSelectionAware {
             low = tmp;
         }
 
-        SimpleOhlcvItem item = new SimpleOhlcvItem(ts, open, high, low, close, 0.0);
-        ohlcv.add(item);
+        // Make first candle visible: seed a previous point so renderer has spacing
+        if (ohlcv.size() == 0) {
+            Date seedTs = new Date(ts.getTime() - 60_000L); // 1 minute earlier
+            ohlcv.add(new SimpleOhlcvItem(seedTs, open, high, low, close, 0.0));
+        }
+
+        ohlcv.add(new SimpleOhlcvItem(ts, open, high, low, close, 0.0));
 
         if (ohlcv.size() > MAX_POINTS) {
             ohlcv.removeOldest(ohlcv.size() - MAX_POINTS);
@@ -232,6 +234,14 @@ public class ChartController implements WknSelectionAware {
     }
 
     private double safePrice(double candidate, double fallback) {
-        return candidate > 0.0 ? candidate : fallback;
+        if (isInvalidNumber(candidate) || candidate <= 0.0) {
+            return fallback;
+        }
+        return candidate;
     }
+
+    private boolean isInvalidNumber(double value) {
+        return Double.isNaN(value) || Double.isInfinite(value);
+    }
+
 }
